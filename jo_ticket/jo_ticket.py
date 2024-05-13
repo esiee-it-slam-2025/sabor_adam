@@ -45,7 +45,7 @@ events = associer_stades_evenements(events, stadiums)
 tickets = associer_billets_evenements(tickets, events)
 
 # Chargement de la police de caractères
-font_paris2024 = ImageFont.truetype("fonts/Paris2024.ttf", 21)
+font_paris2024 = ImageFont.truetype("fonts/Paris2024.ttf", 22)
 
 # Génération des billets
 for ticket in tickets:
@@ -72,7 +72,7 @@ for ticket in tickets:
             draw.text(position, text, font=font, fill=color)
 
         # Création et ajout du QR Code
-        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=4, border=4)
+        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=6, border=4)
         qr.add_data(f"Event Ticket: {ticket['id']}")
         qr.make()
         img_qr = qr.make_image(fill="black", back="white")
