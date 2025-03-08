@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paris 2024 - Football</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="brand">Paris 2024</a>
+            <div class="nav-links">
+                <a href="#" class="nav-link active">Matchs</a>
+                <a href="#" class="nav-link" id="tickets-link" style="display: none;">Mes Billets</a>
+                <a href="#" class="nav-link" id="profile-link" style="display: none;">Profil</a>
+                <a href="#" class="nav-link" id="logout-link" style="display: none;">Déconnexion</a>
+                <a href="login.html" class="nav-link" id="login-link">Se connecter</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Section des matchs -->
+    <header>
+        <div class="header-content">
+            <h1>Matchs - JO Paris 2024</h1>
+            <p class="subtitle">Consultez et réservez vos billets</p>
+            
+            <div class="search-section">
+                <input type="text" id="search-input" placeholder="Rechercher un match...">
+                <select id="filter-select">
+                    <option value="tous">Tous les matchs</option>
+                    <option value="a-venir">À venir</option>
+                    <option value="termines">Terminés</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main id="matches-container" class="matches-grid"></main>
+
+    <!-- Modal de connexion -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2>Connexion</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Mot de passe" required>
+                <button type="submit">Se connecter</button>
+            </form>
+            <p>Pas encore de compte ? <a href="#" onclick="showRegisterModal()">S'inscrire</a></p>
+        </div>
+    </div>
+
+    <!-- Modal d'inscription -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <h2>Inscription</h2>
+            <form id="register-form">
+                <input type="text" id="register-username" placeholder="Nom d'utilisateur" required>
+                <input type="email" id="register-email" placeholder="Email" required>
+                <input type="password" id="register-password" placeholder="Mot de passe" required>
+                <input type="password" id="register-confirm-password" placeholder="Confirmer le mot de passe" required>
+                <button type="submit">S'inscrire</button>
+            </form>
+            <p>Déjà un compte ? <a href="#" onclick="showLoginModal()">Se connecter</a></p>
+        </div>
+    </div>
+
+    <!-- Modal d'achat de billets -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <h2>Acheter un billet</h2>
+            <form id="ticket-form">
+                <div class="match-info"></div>
+                <div class="form-group">
+                    <label for="category">Catégorie</label>
+                    <select id="category" required>
+                        <option value="silver">Silver - 100€</option>
+                        <option value="gold">Gold - 200€</option>
+                        <option value="platinum">Platinum - 300€</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantité</label>
+                    <input type="number" id="quantity" min="1" max="5" value="1">
+                </div>
+                <p class="total">Total: <span id="total-price">100</span>€</p>
+                <button type="submit">Confirmer l'achat</button>
+            </form>
+        </div>
+    </div>
+   
+    <script src="js/app.js"></script>
+    
+</body>
+</html>
