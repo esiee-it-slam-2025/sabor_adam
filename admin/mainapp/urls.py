@@ -1,5 +1,7 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from .views import auth_views, admin_views
 from .views.auth_views import (
     RegisterAPIView, LoginAPIView, LogoutAPIView, 
@@ -79,4 +81,4 @@ urlpatterns = [
     path('api/login/', LoginUserAPIView.as_view(), name='api_login'),
     path('api/tickets/purchase/', PurchaseTicketAPIView.as_view(), name='purchase_ticket'),
     path('api/user/tickets/', UserTicketsAPIView.as_view(), name='user_tickets'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

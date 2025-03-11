@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Configuration de l'API
-    const API_URL = 'http://127.0.0.1:8000/api/v1';
+    const API_URL = 'http://127.0.0.1:8000/api';
     
     // Variables d'état pour gérer la connexion utilisateur
     let isLoggedIn = false;
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Récupération des éléments du DOM nécessaires
     const matchesContainer = document.getElementById('matches-container');
     const loginModal = document.getElementById('login-modal');
-    const ticketModal = document.getElementById('ticket-modal');
+    const ticketModal = document.getElementById('ticketModal');
     const loginForm = document.getElementById('login-form');
     const searchInput = document.getElementById('search-input');
     const filterSelect = document.getElementById('filter-select');
@@ -83,8 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gère la soumission du formulaire de connexion
     async function handleLogin(e) {
         e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const username = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
     
         try {
             // Envoi des identifiants au serveur
@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Stocke le token d'authentification
             localStorage.setItem('authToken', data.token);
             isLoggedIn = true;
+            currentUser = data.user;
             hideModal(loginModal);
             await checkLoginStatus();
         } catch (error) {
@@ -152,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.className = 'match-card';
         
         // Formatage de la date en français
-        const matchDate = new Date(match.start);
+        const matchDate = new Date(match.time);
         const formattedDate = new Intl.DateTimeFormat('fr-FR', {
             day: 'numeric',
             month: 'long',
@@ -173,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="match-info">
                 <div>🏟️ ${match.stadium_name}</div>
-                <div class="score">${match.score_team_home} - ${match.score_team_away}</div>
+                <div class="score">${match.score_home} - ${match.score_away}</div>
             </div>
             <button class="buy-button" data-match-id="${match.id}">
                 ${isLoggedIn ? 'Acheter un billet' : 'Connectez-vous pour acheter'}
@@ -206,9 +207,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             // Filtre selon la date
             if (filterValue === 'a-venir') {
-                return matchesSearch && new Date(match.start) > new Date();
+                return matchesSearch && new Date(match.time) > new Date();
             } else if (filterValue === 'termines') {
-                return matchesSearch && new Date(match.start) < new Date();
+                return matchesSearch && new Date(match.time) < new Date();
             }
             
             return matchesSearch;
@@ -268,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
         matchInfo.innerHTML = `
             <h3>${match.team_home_name} vs ${match.team_away_name}</h3>
             <p>Stade: ${match.stadium_name}</p>
-            <p>Date: ${new Date(match.start).toLocaleString('fr-FR')}</p>
+            <p>Date: ${new Date(match.time).toLocaleString('fr-FR')}</p>
         `;
 
         ticketForm.reset();
@@ -288,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await authenticatedFetch(`${API_URL}/tickets/purchase/`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    match_id: matchId,
+                    event_id: matchId,
                     category: category,
                     quantity: quantity
                 })
@@ -344,7 +345,7 @@ checkAuth();
 
 class ApiService {
     constructor() {
-        this.baseUrl = 'http://127.0.0.1:8000/api/v1';
+        this.baseUrl = 'http://127.0.0.1:8000/api';
         this.token = localStorage.getItem('authToken');
     }
 
@@ -656,7 +657,7 @@ function showRegisterModal() {
 
 class TicketService {
     constructor(authService) {
-        this.API_URL = 'http://127.0.0.1:8000/api/v1';
+        this.API_URL = 'http://127.0.0.1:8000/api';
         this.authService = authService;
         this.setupEventListeners();
     }
@@ -685,7 +686,7 @@ class TicketService {
         
         modal.querySelector('.match-details').innerHTML = `
             <h3>${match.team_home_name} vs ${match.team_away_name}</h3>
-            <p>Date: ${new Date(match.date).toLocaleDateString('fr-FR')}</p>
+            <p>Date: ${new Date(match.time).toLocaleDateString('fr-FR')}</p>
             <p>Stade: ${match.stadium_name}</p>
         `;
         
@@ -708,7 +709,7 @@ class TicketService {
                     'Authorization': `Token ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({
-                    match_id: matchId,
+                    event_id: matchId,
                     quantity: quantity,
                     category: category
                 })
@@ -748,7 +749,7 @@ class TicketService {
         container.innerHTML = tickets.length ? tickets.map(ticket => `
             <div class="ticket-card">
                 <h4>${ticket.match.team_home_name} vs ${ticket.match.team_away_name}</h4>
-                <p>Date: ${new Date(ticket.match.date).toLocaleDateString('fr-FR')}</p>
+                <p>Date: ${new Date(ticket.match.time).toLocaleDateString('fr-FR')}</p>
                 <p>Catégorie: ${ticket.category}</p>
                 <p>Quantité: ${ticket.quantity}</p>
                 <p>Référence: ${ticket.reference}</p>

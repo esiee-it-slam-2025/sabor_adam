@@ -82,20 +82,24 @@ def admin_matches(request):
         if event_id:
             try:
                 event = get_object_or_404(Event, id=event_id)
-                event.start = request.POST.get('start')
+                event.time = request.POST.get('start')
                 event.stadium_id = request.POST.get('stadium')
                 event.team_home_id = request.POST.get('team_home')
                 event.team_away_id = request.POST.get('team_away')
-                event.score_team_home = request.POST.get('score_team_home') or None
-                event.score_team_away = request.POST.get('score_team_away') or None
+                event.score_home = request.POST.get('score_team_home') or 0
+                event.score_away = request.POST.get('score_team_away') or 0
                 event.save()
                 messages.success(request, "Match mis à jour avec succès")
             except Exception as e:
                 messages.error(request, f"Erreur lors de la mise à jour: {str(e)}")
+        
+        # Vérifier si c'est une requête AJAX
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
         return redirect('admin_matches')
 
     context = {
-        'events': Event.objects.all().order_by('start'),
+        'events': Event.objects.all().order_by('time'),
         'teams': Team.objects.all(),
         'stadiums': Stadium.objects.all()
     }

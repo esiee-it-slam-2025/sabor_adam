@@ -6,7 +6,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
 from ..serializers import UserRegistrationSerializer, UserSerializer, TicketSerializer
-from ..models import Event, Ticket, UserProfile
+from ..models import Event, Ticket
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
 

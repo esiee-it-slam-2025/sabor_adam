@@ -1,28 +1,21 @@
 from django.contrib import admin
-from mainapp.models import UserProfile, Event, Team, Stadium, Ticket
 from django.utils.html import format_html
+# Importation depuis le package mainapp.models
+from mainapp.models import Event, Team, Stadium, Ticket
 
-@admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
+# Commençons par les modèles sans dépendances
+@admin.register(Stadium)
+class StadiumAdmin(admin.ModelAdmin):
     list_display = [
-        'name',
-        'time',
-        'team_home',
-        'team_away',
-        'stadium',
-        'score_home',
-        'score_away'
+        'name'
     ]
-    
-    search_fields = ('name', 'team_home__name', 'team_away__name')
-    list_filter = ('status',)
-    list_editable = ['score_home', 'score_away']
+    search_fields = ('name',)
+    ordering = ['name']
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
     list_display = [
         'name',
-        'description',
         'display_logo',
         'created_at'
     ]
@@ -34,41 +27,41 @@ class TeamAdmin(admin.ModelAdmin):
         return "Pas de logo"
     display_logo.short_description = 'Logo'
 
-@admin.register(Stadium)
-class StadiumAdmin(admin.ModelAdmin):
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
     list_display = [
-        'name'
+        'name',
+        'time',
+        'team_home',
+        'team_away',
+        'stadium',
+        'score_home',
+        'score_away',
+        'created_at'
     ]
-    search_fields = ('name', 'address')
-
-    def display_image(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="50" height="50" />', obj.image.url)
-        return "Pas d'image"
-    display_image.short_description = 'Image'
+    search_fields = ('name', 'team_home__name', 'team_away__name', 'stadium__name')
+    list_editable = ['score_home', 'score_away']
+    list_filter = ['time', 'stadium']
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = [
-        'event',
+        'get_event_name',
         'ticket_type',
         'price',
-        'status',
-        'user',
+        'quantity',
+        'total_price',
         'purchase_date',
-        'seat_number'
+        'ticket_uuid'
     ]
     list_filter = [
         'ticket_type',
-        'status',
-        'event'
+        'event',
+        'purchase_date'
     ]
-    search_fields = ('user__username', 'event__name', 'seat_number')
 
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = [
-        'user',
-        'created_at'
-    ]
-    search_fields = ('user__username', 'phone_number')
+    def get_event_name(self, obj):
+        if obj.event:
+            return obj.event.name
+        return "Aucun événement"
+    get_event_name.short_description = 'Événement'

@@ -17,7 +17,7 @@
                 <a href="#" class="nav-link" id="tickets-link" style="display: none;">Mes Billets</a>
                 <a href="#" class="nav-link" id="profile-link" style="display: none;">Profil</a>
                 <a href="#" class="nav-link" id="logout-link" style="display: none;">Déconnexion</a>
-                <a href="login.html" class="nav-link" id="login-link">Se connecter</a>
+                <a href="#" class="nav-link" id="login-link" onclick="showModal(document.getElementById('login-modal'))">Se connecter</a>
             </div>
         </div>
     </nav>
@@ -46,7 +46,7 @@
         <div class="modal-content">
             <h2>Connexion</h2>
             <form id="login-form">
-                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="text" id="login-email" placeholder="Nom d'utilisateur" required>
                 <input type="password" id="login-password" placeholder="Mot de passe" required>
                 <button type="submit">Se connecter</button>
             </form>
