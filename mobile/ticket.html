@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Billets - Paris 2024</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <style>
+        .tickets-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .ticket-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            width: 280px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #fff;
+            transition: transform 0.3s ease;
+        }
+        
+        .ticket-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .ticket-group {
+            margin-bottom: 40px;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .ticket-event-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .ticket-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .download-btn {
+            padding: 8px 16px;
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        
+        .download-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .delete-btn {
+            padding: 8px 16px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand">Paris 2024</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Matchs</a>
+                <a href="#" class="nav-link active" id="tickets-link">Mes Billets</a>
+                <a href="#" class="nav-link" id="logout-link">Déconnexion</a>
+                <a href="#" class="nav-link" id="login-link" style="display: none;">Se connecter</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <header>
+        <div class="header-content">
+            <h1>Mes Billets - JO Paris 2024</h1>
+            <p class="subtitle">Retrouvez tous vos billets achetés</p>
+        </div>
+    </header>
+
+    <main id="tickets-container" class="tickets-grid">
+        <div class="loading">Chargement de vos billets...</div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/qrcode.js"></script>
+    <script src="js/ticket.js"></script>
+    <script>
+        // Fonction globale pour supprimer un billet directement
+        function deleteTicketDirectly(ticketId) {
+            console.log("Suppression directe du billet ID:", ticketId);
+            
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce billet ? Cette action est irréversible.')) {
+                return;
+            }
+            
+            try {
+                // Récupérer les billets du stockage local
+                const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
+                console.log("Total des billets avant suppression:", allTickets.length);
+                
+                // Trouver l'index du billet à supprimer
+                const ticketIndex = allTickets.findIndex(t => String(t.id) === String(ticketId));
+                console.log("Index du billet à supprimer:", ticketIndex);
+                
+                if (ticketIndex === -1) {
+                    alert("Billet non trouvé!");
+                    return;
+                }
+                
+                // Supprimer le billet
+                allTickets.splice(ticketIndex, 1);
+                console.log("Total des billets après suppression:", allTickets.length);
+                
+                // Enregistrer les billets mis à jour
+                localStorage.setItem('user_tickets', JSON.stringify(allTickets));
+                
+                alert("Billet supprimé avec succès!");
+                
+                // Rafraîchir la page
+                window.location.reload();
+            } catch (error) {
+                console.error("Erreur lors de la suppression:", error);
+                alert("Erreur lors de la suppression: " + error.message);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Vérifier si l'utilisateur est connecté
+            if (!window.authManager || !window.authManager.isLoggedIn) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const ticketsContainer = document.getElementById('tickets-container');
+            
+            // Récupérer les billets du stockage local
+            const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
+            console.log("Tous les billets dans localStorage:", allTickets);
+            
+            // Filtrer pour ne garder que les tickets de l'utilisateur connecté
+            const tickets = allTickets.filter(ticket => ticket.user === window.authManager.username);
+            
+            console.log("Billets de l'utilisateur:", tickets);
+            console.log("Billets récupérés:", tickets.length);
+            console.log("Identifiants des billets:", tickets.map(t => t.id));
+            
+            if (!tickets || tickets.length === 0) {
+                ticketsContainer.innerHTML = `
+                    <div class="no-tickets">
+                        <p>Vous n'avez pas encore de billets.</p>
+                        <a href="index.html" class="btn">Acheter des billets</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Regrouper les billets par événement
+            const ticketsByEvent = {};
+            tickets.forEach(ticket => {
+                if (!ticketsByEvent[ticket.event]) {
+                    ticketsByEvent[ticket.event] = [];
+                }
+                ticketsByEvent[ticket.event].push(ticket);
+            });
+            
+            // Générer le HTML pour chaque groupe de billets
+            let html = '';
+            
+            Object.entries(ticketsByEvent).forEach(([eventId, eventTickets]) => {
+                const event = eventTickets[0].event_details;
+                const formattedDate = formatDate(event.time);
+                
+                html += `
+                    <div class="ticket-group">
+                        <div class="ticket-event-header">
+                            <h3>${event.team_home_name} vs ${event.team_away_name}</h3>
+                            <p>${formattedDate.date} à ${formattedDate.time}</p>
+                            <p>Stade: ${event.stadium_name || 'Non précisé'}</p>
+                        </div>
+                        <div class="tickets-list">
+                `;
+                
+                eventTickets.forEach(ticket => {
+                    html += `
+                        <div class="ticket-card">
+                            <div class="ticket-info">
+                                <p><strong>Catégorie:</strong> ${ticket.ticket_type || ticket.category}</p>
+                                <p><strong>Place:</strong> ${ticket.seat || 'Non assignée'}</p>
+                                <p><strong>Prix:</strong> ${ticket.price}€</p>
+                                <p><strong>Référence:</strong> #${ticket.id.substring(0, 8)}</p>
+                            </div>
+                            <div class="ticket-qr">
+                                <canvas id="qrcode-${ticket.id}" width="150" height="150"></canvas>
+                                <div class="ticket-actions">
+                                    <button class="download-btn" data-ticket-id="${ticket.id}">Télécharger ce billet</button>
+                                    <button class="delete-btn" onclick="deleteTicketDirectly('${ticket.id}')">Supprimer ce billet</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            ticketsContainer.innerHTML = html;
+            
+            // Générer les QR codes
+            setTimeout(() => {
+                tickets.forEach(ticket => {
+                    new QRious({
+                        element: document.getElementById(`qrcode-${ticket.id}`),
+                        value: ticket.ticket_uuid || ticket.id.toString(),
+                        size: 150
+                    });
+                });
+                
+                // Ajouter les écouteurs pour le téléchargement
+                document.querySelectorAll('.download-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const ticketId = this.dataset.ticketId;
+                        const canvas = document.getElementById(`qrcode-${ticketId}`);
+                        
+                        if (canvas) {
+                            const dataUrl = canvas.toDataURL('image/png');
+                            const link = document.createElement('a');
+                            link.href = dataUrl;
+                            link.download = `ticket-${ticketId}.png`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    });
+                });
+            }, 500);
+        });
+    </script>
+</body>
+</html>

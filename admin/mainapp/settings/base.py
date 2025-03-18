@@ -124,20 +124,29 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # GESTION DES AUTORISATIONS
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False  # Plus sécurisé
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",  # Live Server VSCode
+    "http://localhost:5500",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:5500",  # Adresse URL local sur le port liveserver
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
 ]
 ALLOWED_HOSTS = [
-    '127.0.0.1',  # Pour les tests en local
+    '127.0.0.1',
+    'localhost',
 ]
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # Auth par token
-        'rest_framework.authentication.SessionAuthentication',  # Auth par session
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',  # Seuls les utilisateurs authentifiés peuvent accéder à l'API
+        'rest_framework.permissions.AllowAny',
     ]
 }

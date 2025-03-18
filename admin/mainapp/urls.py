@@ -2,11 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import auth_views, admin_views
-from .views.auth_views import (
-    RegisterAPIView, LoginAPIView, LogoutAPIView, 
-    UserProfileAPIView, register_user, login_user
-)
+from .views import admin_views
 from .views.admin_views import (
     admin_login,
     admin_matches,
@@ -29,10 +25,18 @@ from .views.admin_views import (
     PurchaseTicketAPIView,
     UserTicketsAPIView
 )
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .views.ticket_verification_api import VerifyTicketAPIView
+
+@api_view(['GET'])
+def health_check(request):
+    """
+    Endpoint simple pour vérifier que l'API est en ligne
+    """
+    return Response({"status": "ok"}, status=200)
 
 urlpatterns = [
-    path('auth/register/', register_user, name='register'),
-    path('auth/login/', login_user, name='login'),
     # Routes d'administration Django
     path('admin/', admin.site.urls),
     
@@ -43,12 +47,6 @@ urlpatterns = [
     path('gestion/matches/<int:pk>/delete/', admin_match_delete, name='admin_match_delete'),
     path('gestion/logout/', admin_logout, name='admin_logout'),
 
-    # Routes API - Authentification et profil utilisateur
-    path('api/v1/register/', RegisterAPIView.as_view(), name='api_register'),
-    path('api/v1/login/', LoginAPIView.as_view(), name='api_login'),
-    path('api/v1/logout/', LogoutAPIView.as_view(), name='api_logout'),
-    path('api/v1/user/', UserProfileAPIView.as_view(), name='api_user_profile'),
-    
     # Routes API - Gestion des événements, équipes et stades
     path('api/v1/events/', EventListCreateAPIView.as_view(), name='event-list'),
     path('api/v1/events/<int:pk>/', EventDetailAPIView.as_view(), name='event-detail'),
@@ -69,7 +67,7 @@ urlpatterns = [
     path('api/admin/stadiums/', StadiumAdminAPI.as_view(), name='stadium_admin_api'),
     path('api/admin/tickets/', TicketAdminAPI.as_view(), name='ticket_admin_api'),
     
-    # Routes API publiques
+    # Routes API publiques principales
     path('api/events/', EventListCreateAPIView.as_view(), name='event_list_create'),
     path('api/events/<int:pk>/', EventDetailAPIView.as_view(), name='event_detail'),
     path('api/teams/', TeamListCreateAPIView.as_view(), name='team_list_create'),
@@ -78,7 +76,8 @@ urlpatterns = [
     path('api/stadiums/<int:pk>/', StadiumDetailAPIView.as_view(), name='stadium_detail'),
     path('api/tickets/', TicketListCreateAPIView.as_view(), name='ticket_list_create'),
     path('api/tickets/<int:pk>/', TicketDetailAPIView.as_view(), name='ticket_detail'),
-    path('api/login/', LoginUserAPIView.as_view(), name='api_login'),
     path('api/tickets/purchase/', PurchaseTicketAPIView.as_view(), name='purchase_ticket'),
     path('api/user/tickets/', UserTicketsAPIView.as_view(), name='user_tickets'),
+    path('api/tickets/verify/<str:uuid>/', VerifyTicketAPIView.as_view(), name='verify_ticket'),
+    path('api/health-check/', health_check, name='health_check'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

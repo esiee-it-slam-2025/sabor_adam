@@ -52,11 +52,13 @@ class TicketAdmin(admin.ModelAdmin):
         'quantity',
         'total_price',
         'purchase_date',
+        'status',
         'ticket_uuid'
     ]
     list_filter = [
         'ticket_type',
         'event',
+        'status',
         'purchase_date'
     ]
 
@@ -65,3 +67,7 @@ class TicketAdmin(admin.ModelAdmin):
             return obj.event.name
         return "Aucun événement"
     get_event_name.short_description = 'Événement'
+
+    def total_price(self, obj):
+        return obj.price * obj.quantity
+    total_price.short_description = 'Prix total'

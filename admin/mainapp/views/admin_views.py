@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
 from rest_framework import generics
 from mainapp.models import Event, Team, Stadium, Ticket
 from mainapp.serializers import EventSerializer, TeamSerializer, StadiumSerializer, TicketSerializer
@@ -10,9 +10,7 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from ..models import Ticket, Event
 from ..serializers import TicketSerializer
@@ -165,25 +163,24 @@ class TicketAdminAPI(generics.ListCreateAPIView):
 
 # 🎟️ Vue pour la gestion des événements
 class EventListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Event.objects.all()
+    queryset = Event.objects.select_related('team_home', 'team_away', 'stadium').all()
     serializer_class = EventSerializer
-    
-    def get_permissions(self):
-        if self.request.method == 'GET':
-            return []  # Pas de permission requise pour GET
-        return [IsAdminUser()]  # Permission admin requise pour POST
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return Event.objects.select_related('team_home', 'team_away', 'stadium').order_by('time')
 
 class EventDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]
 
 
 # ⚽ Vue pour la gestion des équipes
 class TeamListCreateAPIView(generics.ListCreateAPIView):
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]  # Accès public pour tous
 
 class TeamDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Team.objects.all()
@@ -195,7 +192,7 @@ class TeamDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 class StadiumListCreateAPIView(generics.ListCreateAPIView):
     queryset = Stadium.objects.all()
     serializer_class = StadiumSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]  # Accès public pour tous
 
 class StadiumDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Stadium.objects.all()
@@ -207,7 +204,7 @@ class StadiumDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 class TicketListCreateAPIView(generics.ListCreateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]  # Authentification requise pour les tickets
 
 class TicketDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Ticket.objects.all()
@@ -266,6 +263,7 @@ class PurchaseTicketAPIView(APIView):
         user = request.user
         event_id = request.data.get("event_id")
         category = request.data.get("category")
+        quantity = int(request.data.get("quantity", 1))
 
         # Vérifier que l'événement existe
         try:
@@ -273,18 +271,38 @@ class PurchaseTicketAPIView(APIView):
         except Event.DoesNotExist:
             return Response({"error": "Événement non trouvé."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Déterminer le prix
-        category_prices = {"silver": 100, "gold": 200, "platinum": 300}
+        # Vérifier la catégorie et le prix
+        category_prices = {
+            "STANDARD": 50,
+            "VIP": 100,
+            "PREMIUM": 150
+        }
+        
         if category not in category_prices:
             return Response({"error": "Catégorie invalide."}, status=status.HTTP_400_BAD_REQUEST)
 
         price = category_prices[category]
-
-        # Créer le ticket
-        ticket = Ticket.objects.create(user=user, event=event, category=category, price=price)
-        serializer = TicketSerializer(ticket)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        try:
+            # Créer les tickets pour la quantité demandée
+            tickets = []
+            for _ in range(quantity):
+                ticket = Ticket.objects.create(
+                    user=user,
+                    event=event,
+                    category=category,
+                    price=price
+                )
+                tickets.append(ticket)
+            
+            serializer = TicketSerializer(tickets, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Erreur lors de la création du ticket: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class UserTicketsAPIView(APIView):
     """
