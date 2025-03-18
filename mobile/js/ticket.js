@@ -60,9 +60,13 @@
         
         async handleBuyButtonClick(matchId) {
             try {
-                // Récupérer les détails du match depuis le stockage local ou l'API
-                const matches = await fetchEvents();
-                const match = matches.find(m => m.id == matchId);
+                // Récupérer les détails du match depuis l'API
+                const response = await fetch(`${API_BASE_URL}/events/${matchId}/`);
+                if (!response.ok) {
+                    throw new Error("Erreur lors de la récupération des détails du match");
+                }
+                
+                const match = await response.json();
                 
                 if (!match) {
                     throw new Error("Match non trouvé");
@@ -93,120 +97,247 @@
                 
             } catch (error) {
                 console.error("Erreur:", error);
-                alert(`Erreur lors de la récupération du match: ${error.message}`);
+                
+                // Fallback vers la récupération locale des données
+                fetchEvent(matchId).then(match => {
+                    this.currentMatch = match;
+                    
+                    // Définir l'ID de l'événement dans le formulaire
+                    const eventIdInput = document.getElementById('purchase-event-id');
+                    if (eventIdInput) {
+                        eventIdInput.value = matchId;
+                    }
+                    
+                    // Afficher les détails du match dans la modal
+                    const matchDetails = document.querySelector('.match-details');
+                    if (matchDetails) {
+                        const formattedDate = formatDate(match.time);
+                        matchDetails.innerHTML = `
+                            <h3>${match.name || 'Match'}</h3>
+                            <p>${match.team_home_name} vs ${match.team_away_name}</p>
+                            <p>Date: ${formattedDate.date} à ${formattedDate.time}</p>
+                            <p>Stade: ${match.stadium_name}</p>
+                        `;
+                    }
+                    
+                    // Afficher la modal
+                    showModal(document.getElementById('ticket-modal'));
+                }).catch(error => {
+                    alert(`Erreur lors de la récupération du match: ${error.message}`);
+                });
             }
         }
         
-        handlePurchase(event) {
-            event.preventDefault();
-            console.log("Formulaire soumis");
+        // Modifiez la fonction handlePurchase dans mobile/js/ticket.js
+
+async handlePurchase(event) {
+    event.preventDefault();
+    console.log("Formulaire soumis");
+    
+    try {
+        // Vérifier si l'utilisateur est connecté
+        if (!window.authManager || !window.authManager.isLoggedIn) {
+            alert("Veuillez vous connecter pour acheter un billet");
+            if (window.authManager) {
+                window.authManager.showLoginModal();
+            }
+            return;
+        }
+        
+        // Récupérer les valeurs du formulaire
+        const form = event.target;
+        const eventId = form.querySelector('[name="event_id"]')?.value;
+        const category = form.querySelector('[name="category"]')?.value;
+        const quantity = parseInt(form.querySelector('[name="quantity"]')?.value || 1);
+        
+        console.log("Données du formulaire:", { eventId, category, quantity });
+        
+        // Vérifier que toutes les valeurs sont présentes
+        if (!eventId || !category) {
+            console.error('Données du formulaire manquantes', { eventId, category, quantity });
+            alert('Erreur: Données du formulaire incomplètes. Veuillez réessayer.');
+            return;
+        }
+        
+        // Définir les prix selon la catégorie
+        const prices = {
+            'STANDARD': 50,
+            'VIP': 100,
+            'PREMIUM': 150
+        };
+        const price = prices[category] || 50;
+        
+        // Récupérer le token d'authentification
+        const token = localStorage.getItem('api_token');
+        
+        // Tentative d'achat via l'API
+        try {
+            const csrftoken = getCookie('csrftoken');
             
+            console.log('Envoi de la requête d\'achat avec token:', token);
+            
+            const response = await fetch(`${API_BASE_URL}/tickets/purchase/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${token}`,
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    category: category,
+                    quantity: quantity
+                }),
+                credentials: 'include'
+            });
+            
+            console.log('Réponse achat:', response.status);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erreur lors de l\'achat');
+            }
+            
+            const data = await response.json();
+            console.log('Données tickets achetés:', data);
+            
+            alert("Achat réussi ! Vous pouvez consulter votre billet dans la section 'Mes billets'.");
+            
+            // Fermer la modale
+            hideModal(document.getElementById('ticket-modal'));
+            
+            // Rediriger vers la page des billets
+            window.location.href = 'ticket.html';
+            
+        } catch (error) {
+            console.error("Erreur API achat:", error);
+            console.log("Tentative d'achat local");
+            
+            // Fallback vers stockage local
+            this.handleLocalPurchase(eventId, category, quantity, price);
+        }
+        
+    } catch (error) {
+        console.error("Erreur lors de l'achat:", error);
+        alert(`Erreur lors de l'achat: ${error.message}`);
+    }
+}
+        
+        async handleLocalPurchase(eventId, category, quantity, price) {
             try {
-                // Vérifier si l'utilisateur est connecté
-                if (!window.authManager || !window.authManager.isLoggedIn) {
-                    alert("Veuillez vous connecter pour acheter un billet");
-                    if (window.authManager) {
-                        window.authManager.showLoginModal();
-                    }
-                    return;
-                }
+                const match = await fetchEvent(eventId);
                 
-                // Récupérer les valeurs du formulaire
-                const form = event.target;
-                const eventId = form.querySelector('[name="event_id"]')?.value;
-                const category = form.querySelector('[name="category"]')?.value;
-                const quantity = parseInt(form.querySelector('[name="quantity"]')?.value || 1);
+                // Récupérer les tickets du stockage local
+                const tickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
                 
-                console.log("Données du formulaire:", { eventId, category, quantity });
-                
-                // Vérifier que toutes les valeurs sont présentes
-                if (!eventId || !category) {
-                    console.error('Données du formulaire manquantes', { eventId, category, quantity });
-                    alert('Erreur: Données du formulaire incomplètes. Veuillez réessayer.');
-                    return;
-                }
-                
-                // Récupérer les détails du match
-                fetchEvent(eventId).then(match => {
-                    // Définir les prix selon la catégorie
-                    const prices = {
-                        'STANDARD': 50,
-                        'VIP': 100,
-                        'PREMIUM': 150
+                // Créer des tickets individuels pour chaque quantité
+                for (let i = 0; i < quantity; i++) {
+                    // Créer un nouvel identifiant unique pour chaque ticket individuel
+                    const ticketId = Date.now().toString() + '-' + i;
+                    
+                    // Créer le nouveau ticket individuel
+                    const newTicket = {
+                        id: ticketId,
+                        user: window.authManager.username,
+                        user_id: window.authManager.userId,
+                        event: eventId,
+                        event_details: match,
+                        category: category,
+                        ticket_type: category,
+                        quantity: 1, // Chaque ticket est pour 1 place
+                        price: price,
+                        purchase_date: new Date().toISOString(),
+                        status: 'ACTIVE',
+                        ticket_uuid: `TICKET-${ticketId}-${eventId}`,
+                        seat: `SECTION-${category}-${Math.floor(Math.random() * 100) + 1}` // Ajoute une section aléatoire pour plus de réalisme
                     };
-                    const price = prices[category] || 50;
                     
-                    // Récupérer les tickets du stockage local
-                    const tickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
-                    
-                    // Créer des tickets individuels pour chaque quantité
-                    for (let i = 0; i < quantity; i++) {
-                        // Créer un nouvel identifiant unique pour chaque ticket individuel
-                        const ticketId = Date.now().toString() + '-' + i;
-                        
-                        // Créer le nouveau ticket individuel
-                        const newTicket = {
-                            id: ticketId,
-                            user: window.authManager.username,
-                            event: eventId,
-                            event_details: match,
-                            category: category,
-                            ticket_type: category,
-                            quantity: 1, // Chaque ticket est pour 1 place
-                            price: price,
-                            purchase_date: new Date().toISOString(),
-                            ticket_uuid: `TICKET-${ticketId}-${eventId}`,
-                            seat: `SECTION-${category}-${Math.floor(Math.random() * 100) + 1}` // Ajoute une section aléatoire pour plus de réalisme
-                        };
-                        
-                        // Ajouter le ticket individuel à la liste
-                        tickets.push(newTicket);
-                    }
-                    
-                    // Sauvegarder la liste dans le stockage local
-                    localStorage.setItem('user_tickets', JSON.stringify(tickets));
-                    
-                    alert("Achat réussi ! Vous pouvez consulter votre billet dans la section 'Mes billets'.");
-                    
-                    // Fermer la modale
-                    hideModal(document.getElementById('ticket-modal'));
-                    
-                }).catch(error => {
-                    console.error("Erreur lors de la récupération du match:", error);
-                    alert(`Erreur lors de l'achat: ${error.message}`);
-                });
+                    // Ajouter le ticket individuel à la liste
+                    tickets.push(newTicket);
+                }
+                
+                // Sauvegarder la liste dans le stockage local
+                localStorage.setItem('user_tickets', JSON.stringify(tickets));
+                
+                alert("Achat réussi ! Vous pouvez consulter votre billet dans la section 'Mes billets'.");
+                
+                // Fermer la modale
+                hideModal(document.getElementById('ticket-modal'));
+                
+                // Rediriger vers la page des billets
+                window.location.href = 'ticket.html';
                 
             } catch (error) {
-                console.error("Erreur lors de l'achat:", error);
+                console.error("Erreur lors de l'achat local:", error);
                 alert(`Erreur lors de l'achat: ${error.message}`);
             }
         }
         
-        loadUserTickets() {
-            try {
-                if (!window.authManager || !window.authManager.isLoggedIn) {
-                    window.location.href = 'index.html';
-                    return;
-                }
-                
-                // Récupérer les tickets du stockage local
-                const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
-                
-                // Filtrer pour ne garder que les tickets de l'utilisateur connecté
-                const tickets = allTickets.filter(ticket => ticket.user === window.authManager.username);
-                
-                this.displayTickets(tickets);
-            } catch (error) {
-                const ticketsContainer = document.getElementById('tickets-container');
-                if (ticketsContainer) {
-                    ticketsContainer.innerHTML = `
-                        <div class="error-message">
-                            <p>${error.message}</p>
-                            <a href="index.html" class="btn">Retour à l'accueil</a>
-                        </div>`;
-                }
-            }
+        // Dans mobile/js/ticket.js, modifiez la fonction loadUserTickets()
+
+async loadUserTickets() {
+    try {
+        if (!window.authManager || !window.authManager.isLoggedIn) {
+            window.location.href = 'index.html';
+            return;
         }
+        
+        // Récupérer le token proprement
+        const token = localStorage.getItem('api_token');
+        
+        if (!token) {
+            throw new Error('Vous n\'êtes pas connecté');
+        }
+        
+        // Tentative de récupération des tickets via l'API
+        try {
+            const response = await fetch(`${API_BASE_URL}/user/tickets/`, {
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+            
+            console.log('Réponse API tickets :', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+            
+            const tickets = await response.json();
+            console.log('Tickets récupérés :', tickets);
+            this.displayTickets(tickets);
+            
+        } catch (error) {
+            console.error('Erreur API tickets:', error);
+            
+            // Fallback vers le stockage local
+            const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
+            console.log('Utilisation du stockage local, tickets disponibles:', allTickets.length);
+            
+            // Filtrer pour ne garder que les tickets de l'utilisateur connecté
+            const userTickets = allTickets.filter(ticket => {
+                return ticket.user === window.authManager.username || 
+                       String(ticket.user_id) === String(window.authManager.userId);
+            });
+            
+            console.log('Tickets filtrés pour l\'utilisateur:', userTickets.length);
+            this.displayTickets(userTickets);
+        }
+        
+    } catch (error) {
+        console.error('Erreur générale:', error);
+        const ticketsContainer = document.getElementById('tickets-container');
+        if (ticketsContainer) {
+            ticketsContainer.innerHTML = `
+                <div class="error-message">
+                    <p>${error.message}</p>
+                    <a href="index.html" class="btn">Retour à l'accueil</a>
+                </div>`;
+        }
+    }
+}
         
         displayTickets(tickets) {
             const ticketsContainer = document.getElementById('tickets-container');
@@ -224,7 +355,9 @@
             // Regrouper les tickets par événement
             const ticketsByEvent = {};
             tickets.forEach(ticket => {
-                const eventId = ticket.event;
+                const eventId = ticket.event || (ticket.event_details ? ticket.event_details.id : null);
+                if (!eventId) return;
+                
                 if (!ticketsByEvent[eventId]) {
                     ticketsByEvent[eventId] = [];
                 }
@@ -237,7 +370,7 @@
             Object.keys(ticketsByEvent).forEach(eventId => {
                 const eventTickets = ticketsByEvent[eventId];
                 const firstTicket = eventTickets[0];
-                const eventDetails = firstTicket.event_details;
+                const eventDetails = firstTicket.event_details || firstTicket;
                 
                 html += `
                     <div class="ticket-group">
@@ -255,9 +388,10 @@
                             <div class="ticket-info">
                                 <p><strong>Type:</strong> ${ticket.ticket_type || ticket.category}</p>
                                 <p><strong>Prix:</strong> ${ticket.price} €</p>
-                                <p><strong>Place:</strong> ${ticket.seat || 'Non assignée'}</p>
+                                <p><strong>Place:</strong> ${ticket.seat || ticket.seat_number || 'Non assignée'}</p>
                                 <p><strong>Date d'achat:</strong> ${formatDate(ticket.purchase_date).date}</p>
-                                <p><strong>Référence:</strong> #${ticket.id.substring(0, 8)}</p>
+                                <p><strong>Statut:</strong> ${ticket.status || 'ACTIVE'}</p>
+                                <p><strong>Référence:</strong> #${typeof ticket.id === 'string' ? ticket.id.substring(0, 8) : ticket.id}</p>
                             </div>
                             <div class="ticket-qr">
                                 <canvas id="qrcode-${ticket.id}" width="100" height="100"></canvas>
@@ -265,7 +399,7 @@
                                     <button class="download-btn" data-ticket-id="${ticket.id}">
                                         Télécharger ce billet
                                     </button>
-                                    <button class="delete-btn" data-ticket-id="${ticket.id}">
+                                    <button class="delete-btn" data-ticket-id="${ticket.id}" onclick="deleteTicketDirectly('${ticket.id}')">
                                         Supprimer ce billet
                                     </button>
                                 </div>
@@ -283,28 +417,43 @@
             ticketsContainer.innerHTML = html;
             
             // Générer les QR codes
-            tickets.forEach(ticket => {
-                const canvas = document.getElementById(`qrcode-${ticket.id}`);
-                if (canvas) {
-                    new QRious({
-                        element: canvas,
-                        value: ticket.ticket_uuid || ticket.id.toString(),
-                        size: 100
-                    });
-                }
-            });
-            
-            // Ajouter les écouteurs pour le téléchargement
-            document.querySelectorAll('.download-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const ticketId = e.target.dataset.ticketId;
-                    this.downloadTicket(ticketId, tickets);
+            setTimeout(() => {
+                tickets.forEach(ticket => {
+                    const canvasId = `qrcode-${ticket.id}`;
+                    const canvas = document.getElementById(canvasId);
+                    if (canvas) {
+                        try {
+                            new QRious({
+                                element: canvas,
+                                value: ticket.ticket_uuid || String(ticket.id),
+                                size: 100
+                            });
+                        } catch (error) {
+                            console.error(`Erreur QR pour le billet ${ticket.id}:`, error);
+                        }
+                    }
                 });
-            });
+                
+                // Ajouter les écouteurs pour le téléchargement
+                document.querySelectorAll('.download-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const ticketId = e.target.dataset.ticketId;
+                        this.downloadTicket(ticketId, tickets);
+                    });
+                });
+                
+                // Ajouter les écouteurs pour la suppression
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const ticketId = e.target.dataset.ticketId;
+                        this.deleteTicket(ticketId);
+                    });
+                });
+            }, 100);
         }
         
         downloadTicket(ticketId, tickets) {
-            const ticket = tickets.find(t => t.id == ticketId);
+            const ticket = tickets.find(t => String(t.id) === String(ticketId));
             if (!ticket) {
                 alert('Billet non trouvé');
                 return;
@@ -320,12 +469,11 @@
                 link.click();
                 document.body.removeChild(link);
             } else {
-                alert('Fonctionnalité de téléchargement en cours de développement.');
-                console.log('Téléchargement du billet:', ticket);
+                alert('QR Code non disponible pour ce billet.');
             }
         }
         
-        deleteTicket(ticketId) {
+        async deleteTicket(ticketId) {
             console.log("Suppression du billet ID:", ticketId);
             
             // Demander confirmation avant de supprimer
@@ -333,41 +481,59 @@
                 return;
             }
             
+            // Tentative de suppression via l'API
             try {
-                // Récupérer les billets du stockage local
-                const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
-                console.log("Total des billets avant suppression:", allTickets.length);
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Token ${window.authManager.token}`,
+                        'Content-Type': 'application/json',
+                       'X-CSRFToken': csrftoken
+                    },
+                    credentials: 'include'
+                });
                 
-                // Trouver l'index du billet à supprimer
-                const ticketIndex = allTickets.findIndex(t => String(t.id) === String(ticketId));
-                console.log("Index du billet à supprimer:", ticketIndex);
-                
-                if (ticketIndex === -1) {
-                    alert("Billet non trouvé!");
-                    return;
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la suppression du billet');
                 }
                 
-                // Supprimer le billet
-                allTickets.splice(ticketIndex, 1);
-                console.log("Total des billets après suppression:", allTickets.length);
-                
-                // Enregistrer les billets mis à jour
-                localStorage.setItem('user_tickets', JSON.stringify(allTickets));
-                
                 alert("Billet supprimé avec succès!");
-                
-                // Rafraîchir la page
                 window.location.reload();
+                
             } catch (error) {
-                console.error("Erreur lors de la suppression:", error);
-                alert("Erreur lors de la suppression: " + error.message);
-            }
-        }
-        
-        closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                hideModal(modal);
+                console.error('Erreur API suppression:', error);
+                
+                // Fallback vers le stockage local
+                try {
+                    // Récupérer les billets du stockage local
+                    const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
+                    console.log("Total des billets avant suppression:", allTickets.length);
+                    
+                    // Trouver l'index du billet à supprimer
+                    const ticketIndex = allTickets.findIndex(t => String(t.id) === String(ticketId));
+                    console.log("Index du billet à supprimer:", ticketIndex);
+                    
+                    if (ticketIndex === -1) {
+                        alert("Billet non trouvé!");
+                        return;
+                    }
+                    
+                    // Supprimer le billet
+                    allTickets.splice(ticketIndex, 1);
+                    console.log("Total des billets après suppression:", allTickets.length);
+                    
+                    // Enregistrer les billets mis à jour
+                    localStorage.setItem('user_tickets', JSON.stringify(allTickets));
+                    
+                    alert("Billet supprimé avec succès!");
+                    
+                    // Rafraîchir la page
+                    window.location.reload();
+                } catch (error) {
+                    console.error("Erreur lors de la suppression:", error);
+                    alert("Erreur lors de la suppression: " + error.message);
+                }
             }
         }
     }

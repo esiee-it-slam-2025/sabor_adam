@@ -1,6 +1,22 @@
 // Configuration de l'API
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
+// Fonction pour récupérer un cookie spécifique (utile pour CSRF)
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 // Fonction pour formater une date
 function formatDate(dateString) {
     const date = new Date(dateString);
@@ -43,11 +59,12 @@ async function apiCall(endpoint, options = {}) {
         headers: {
             'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include'
     };
     
     if (options.body) {
-        defaultOptions.body = options.body;
+        defaultOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
     }
     
     try {
@@ -59,8 +76,13 @@ async function apiCall(endpoint, options = {}) {
                 window.location.href = '/index.html';
                 throw new Error('Session expirée');
             }
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erreur serveur');
+            
+            try {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Erreur serveur');
+            } catch (e) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
         }
         
         return await response.json();
@@ -118,24 +140,37 @@ async function fetchTickets() {
 
         const response = await fetch(`${API_BASE_URL}/user/tickets/`, {
             headers: {
-                'Authorization': `Token ${token}`,
+                'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('api_token');
+                throw new Error('Session expirée');
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         return await response.json();
     } catch (error) {
         console.error('Erreur lors de la récupération des tickets:', error);
-        return [];
+        
+        // Fallback sur localStorage
+        const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
+        const userTickets = allTickets.filter(ticket => 
+            ticket.user === localStorage.getItem('username') || 
+            String(ticket.user_id) === localStorage.getItem('user_id')
+        );
+        return userTickets;
     }
 }
 
 // Export des fonctions
 window.API_BASE_URL = API_BASE_URL;
+window.getCookie = getCookie;
 window.fetchApi = fetchApi;
 window.apiCall = apiCall;
 window.formatDate = formatDate;

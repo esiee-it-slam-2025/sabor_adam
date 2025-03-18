@@ -81,3 +81,10 @@ urlpatterns = [
     path('api/tickets/verify/<str:uuid>/', VerifyTicketAPIView.as_view(), name='verify_ticket'),
     path('api/health-check/', health_check, name='health_check'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Ajoutez ces imports si nécessaire
+from .views.admin_views import user_login, user_register, user_logout
+
+# Ajoutez ces URL dans urlpatterns
+path('api/user/login/', user_login, name='user_login'),
+path('api/user/register/', user_register, name='user_register'),
+path('api/user/logout/', user_logout, name='user_logout'),

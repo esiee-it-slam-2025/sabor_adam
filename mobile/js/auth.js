@@ -7,6 +7,7 @@
             this.token = localStorage.getItem('api_token');
             this.isLoggedIn = !!this.token;
             this.username = localStorage.getItem('username');
+            this.userId = localStorage.getItem('user_id');
             this.setupEventListeners();
             this.updateUI();
         }
@@ -64,7 +65,7 @@
             this.updateUI();
         }
         
-        handleLogin(event) {
+        async handleLogin(event) {
             event.preventDefault();
             
             const usernameInput = document.getElementById('login-email');
@@ -83,32 +84,81 @@
                 return;
             }
             
-            // Récupérer les utilisateurs du stockage local
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (user) {
-                // Générer un token factice
-                const token = `token_${username}_${Date.now()}`;
-                localStorage.setItem('api_token', token);
-                localStorage.setItem('username', username);
+            try {
+                // Obtenir le token CSRF
+                const csrftoken = getCookie('csrftoken');
                 
-                this.token = token;
+                // Appel API pour la connexion
+                const response = await fetch(`${API_BASE_URL}/user/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    }),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erreur de connexion');
+                }
+                
+                const data = await response.json();
+                
+                // Sauvegarder le token et les infos utilisateur
+                localStorage.setItem('api_token', data.token);
+                localStorage.setItem('username', username);
+                localStorage.setItem('user_id', data.user.id);
+                
+                this.token = data.token;
                 this.username = username;
+                this.userId = data.user.id;
                 this.isLoggedIn = true;
                 this.updateUI();
                 
                 // Fermer la modal
                 hideModal(document.getElementById('login-modal'));
                 
-                // Recharger la page si nécessaire
+                // Recharger la page
                 window.location.reload();
-            } else {
-                alert("Identifiants incorrects. Veuillez réessayer.");
+                
+            } catch (error) {
+                // En cas d'échec de l'API, utiliser l'authentification locale simulée
+                console.error('Erreur API login:', error);
+                
+                // Récupérer les utilisateurs du stockage local
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const user = users.find(u => u.username === username && u.password === password);
+                
+                if (user) {
+                    // Générer un token factice
+                    const token = `token_${username}_${Date.now()}`;
+                    localStorage.setItem('api_token', token);
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('user_id', Date.now());
+                    
+                    this.token = token;
+                    this.username = username;
+                    this.userId = Date.now();
+                    this.isLoggedIn = true;
+                    this.updateUI();
+                    
+                    // Fermer la modal
+                    hideModal(document.getElementById('login-modal'));
+                    
+                    // Recharger la page
+                    window.location.reload();
+                } else {
+                    alert("Identifiants incorrects. Veuillez réessayer.");
+                }
             }
         }
         
-        handleRegister(event) {
+        async handleRegister(event) {
             event.preventDefault();
             
             const usernameInput = document.getElementById('register-username');
@@ -136,41 +186,83 @@
                 return;
             }
             
-            // Récupérer les utilisateurs du stockage local
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            
-            // Vérifier si l'utilisateur existe déjà
-            if (users.some(u => u.username === username)) {
-                alert("Ce nom d'utilisateur est déjà utilisé");
-                return;
-            }
-            
-            if (users.some(u => u.email === email)) {
-                alert("Cette adresse email est déjà utilisée");
-                return;
-            }
-            
-            // Ajouter le nouvel utilisateur
-            users.push({
-                username,
-                email,
-                password,
-                created_at: new Date().toISOString()
-            });
-            
-            // Sauvegarder les utilisateurs
-            localStorage.setItem('users', JSON.stringify(users));
-            
-            alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
-            
-            // Fermer la modal d'inscription et ouvrir celle de connexion
-            hideModal(document.getElementById('register-modal'));
-            showModal(document.getElementById('login-modal'));
-            
-            // Pré-remplir le champ du nom d'utilisateur
-            const loginUsernameInput = document.getElementById('login-email');
-            if (loginUsernameInput) {
-                loginUsernameInput.value = username;
+            try {
+                // Obtenir le token CSRF
+                const csrftoken = getCookie('csrftoken');
+                
+                // Appel API pour l'inscription
+                const response = await fetch(`${API_BASE_URL}/user/register/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password,
+                        password_confirm: confirmPassword
+                    }),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erreur d\'inscription');
+                }
+                
+                alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
+                
+                // Fermer la modal d'inscription et ouvrir celle de connexion
+                hideModal(document.getElementById('register-modal'));
+                showModal(document.getElementById('login-modal'));
+                
+                // Pré-remplir le champ du nom d'utilisateur
+                const loginUsernameInput = document.getElementById('login-email');
+                if (loginUsernameInput) {
+                    loginUsernameInput.value = username;
+                }
+                
+            } catch (error) {
+                // En cas d'échec de l'API, utiliser l'inscription locale simulée
+                console.error('Erreur API inscription:', error);
+                
+                // Récupérer les utilisateurs du stockage local
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                // Vérifier si l'utilisateur existe déjà
+                if (users.some(u => u.username === username)) {
+                    alert("Ce nom d'utilisateur est déjà utilisé");
+                    return;
+                }
+                
+                if (users.some(u => u.email === email)) {
+                    alert("Cette adresse email est déjà utilisée");
+                    return;
+                }
+                
+                // Ajouter le nouvel utilisateur
+                users.push({
+                    username,
+                    email,
+                    password,
+                    created_at: new Date().toISOString()
+                });
+                
+                // Sauvegarder les utilisateurs
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
+                
+                // Fermer la modal d'inscription et ouvrir celle de connexion
+                hideModal(document.getElementById('register-modal'));
+                showModal(document.getElementById('login-modal'));
+                
+                // Pré-remplir le champ du nom d'utilisateur
+                const loginUsernameInput = document.getElementById('login-email');
+                if (loginUsernameInput) {
+                    loginUsernameInput.value = username;
+                }
             }
         }
         
@@ -179,12 +271,27 @@
                 event.preventDefault();
             }
             
+            // Tenter de déconnecter via l'API
+            if (this.token && this.token.startsWith('Token ')) {
+                // Appel à l'API de déconnexion (facultatif selon configuration Django)
+                fetch(`${API_BASE_URL}/user/logout/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': this.token,
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(err => console.error('Erreur de déconnexion API:', err));
+            }
+            
+            // Nettoyer le stockage local
             localStorage.removeItem('api_token');
             localStorage.removeItem('username');
+            localStorage.removeItem('user_id');
             
             this.token = null;
             this.isLoggedIn = false;
             this.username = null;
+            this.userId = null;
             
             this.updateUI();
             
