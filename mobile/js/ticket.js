@@ -130,98 +130,101 @@
         
         // Modifiez la fonction handlePurchase dans mobile/js/ticket.js
 
-async handlePurchase(event) {
-    event.preventDefault();
-    console.log("Formulaire soumis");
-    
-    try {
-        // Vérifier si l'utilisateur est connecté
-        if (!window.authManager || !window.authManager.isLoggedIn) {
-            alert("Veuillez vous connecter pour acheter un billet");
-            if (window.authManager) {
-                window.authManager.showLoginModal();
-            }
-            return;
-        }
-        
-        // Récupérer les valeurs du formulaire
-        const form = event.target;
-        const eventId = form.querySelector('[name="event_id"]')?.value;
-        const category = form.querySelector('[name="category"]')?.value;
-        const quantity = parseInt(form.querySelector('[name="quantity"]')?.value || 1);
-        
-        console.log("Données du formulaire:", { eventId, category, quantity });
-        
-        // Vérifier que toutes les valeurs sont présentes
-        if (!eventId || !category) {
-            console.error('Données du formulaire manquantes', { eventId, category, quantity });
-            alert('Erreur: Données du formulaire incomplètes. Veuillez réessayer.');
-            return;
-        }
-        
-        // Définir les prix selon la catégorie
-        const prices = {
-            'STANDARD': 50,
-            'VIP': 100,
-            'PREMIUM': 150
-        };
-        const price = prices[category] || 50;
-        
-        // Récupérer le token d'authentification
-        const token = localStorage.getItem('api_token');
-        
-        // Tentative d'achat via l'API
-        try {
-            const csrftoken = getCookie('csrftoken');
+        async handlePurchase(event) {
+            event.preventDefault();
+            console.log("Formulaire soumis");
             
-            console.log('Envoi de la requête d\'achat avec token:', token);
-            
-            const response = await fetch(`${API_BASE_URL}/tickets/purchase/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Token ${token}`,
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({
+            try {
+                // Vérifier si l'utilisateur est connecté
+                if (!window.authManager || !window.authManager.isLoggedIn) {
+                    alert("Veuillez vous connecter pour acheter un billet");
+                    if (window.authManager) {
+                        window.authManager.showLoginModal();
+                    }
+                    return;
+                }
+                
+                // Récupérer les valeurs du formulaire
+                const form = event.target;
+                const eventId = form.querySelector('[name="event_id"]')?.value;
+                const category = form.querySelector('[name="category"]')?.value;
+                const quantity = parseInt(form.querySelector('[name="quantity"]')?.value || 1);
+                
+                console.log("Données du formulaire:", { eventId, category, quantity });
+                
+                // Vérifier que toutes les valeurs sont présentes
+                if (!eventId || !category) {
+                    console.error('Données du formulaire manquantes', { eventId, category, quantity });
+                    alert('Erreur: Données du formulaire incomplètes. Veuillez réessayer.');
+                    return;
+                }
+                
+                // Récupérer le token
+                const token = localStorage.getItem('api_token');
+                if (!token) {
+                    throw new Error('Non authentifié');
+                }
+                
+                // Obtenir le token CSRF
+                const csrftoken = getCookie('csrftoken');
+                
+                // Préparer les données pour l'achat
+                const purchaseData = {
                     event_id: eventId,
                     category: category,
                     quantity: quantity
-                }),
-                credentials: 'include'
-            });
-            
-            console.log('Réponse achat:', response.status);
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erreur lors de l\'achat');
+                };
+                
+                // Appel API pour l'achat de ticket
+                const response = await fetch(`${API_BASE_URL}/tickets/purchase/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(purchaseData),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Réponse de l\'API achat:', data);
+                
+                alert("Achat réussi ! Vous pouvez consulter votre billet dans la section 'Mes billets'.");
+                
+                // Fermer la modale
+                hideModal(document.getElementById('ticket-modal'));
+                
+                // Rediriger vers la page des billets
+                window.location.href = 'ticket.html';
+                
+            } catch (error) {
+                console.error("Erreur lors de l'achat:", error);
+                
+                // Si erreur avec l'API, essayer la méthode locale (fallback)
+                try {
+                    const prices = {
+                        'STANDARD': 50,
+                        'VIP': 100,
+                        'PREMIUM': 150
+                    };
+                    const price = prices[form.querySelector('[name="category"]').value] || 50;
+                    const eventId = form.querySelector('[name="event_id"]').value;
+                    const category = form.querySelector('[name="category"]').value;
+                    const quantity = parseInt(form.querySelector('[name="quantity"]').value || 1);
+                    
+                    // Appeler la méthode de fallback
+                    this.handleLocalPurchase(eventId, category, quantity, price);
+                } catch (fallbackError) {
+                    console.error("Erreur lors du fallback local:", fallbackError);
+                    alert(`Erreur lors de l'achat: ${error.message}. Veuillez réessayer.`);
+                }
             }
-            
-            const data = await response.json();
-            console.log('Données tickets achetés:', data);
-            
-            alert("Achat réussi ! Vous pouvez consulter votre billet dans la section 'Mes billets'.");
-            
-            // Fermer la modale
-            hideModal(document.getElementById('ticket-modal'));
-            
-            // Rediriger vers la page des billets
-            window.location.href = 'ticket.html';
-            
-        } catch (error) {
-            console.error("Erreur API achat:", error);
-            console.log("Tentative d'achat local");
-            
-            // Fallback vers stockage local
-            this.handleLocalPurchase(eventId, category, quantity, price);
         }
-        
-    } catch (error) {
-        console.error("Erreur lors de l'achat:", error);
-        alert(`Erreur lors de l'achat: ${error.message}`);
-    }
-}
         
         async handleLocalPurchase(eventId, category, quantity, price) {
             try {
@@ -275,69 +278,76 @@ async handlePurchase(event) {
         
         // Dans mobile/js/ticket.js, modifiez la fonction loadUserTickets()
 
-async loadUserTickets() {
-    try {
-        if (!window.authManager || !window.authManager.isLoggedIn) {
-            window.location.href = 'index.html';
-            return;
-        }
-        
-        // Récupérer le token proprement
-        const token = localStorage.getItem('api_token');
-        
-        if (!token) {
-            throw new Error('Vous n\'êtes pas connecté');
-        }
-        
-        // Tentative de récupération des tickets via l'API
-        try {
-            const response = await fetch(`${API_BASE_URL}/user/tickets/`, {
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
-            });
-            
-            console.log('Réponse API tickets :', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
+        async loadUserTickets() {
+            try {
+                if (!window.authManager || !window.authManager.isLoggedIn) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                const token = localStorage.getItem('api_token');
+                if (!token) {
+                    throw new Error('Non authentifié');
+                }
+                
+                const ticketsContainer = document.getElementById('tickets-container');
+                if (!ticketsContainer) return;
+                
+                ticketsContainer.innerHTML = '<div class="loading">Chargement de vos billets...</div>';
+                
+                // Appel API pour récupérer les tickets de l'utilisateur
+                const response = await fetch(`${API_BASE_URL}/user/tickets/`, {
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                
+                const tickets = await response.json();
+                console.log('Tickets récupérés:', tickets);
+                
+                if (tickets.length === 0) {
+                    ticketsContainer.innerHTML = `
+                        <div class="no-tickets">
+                            <p>Vous n'avez pas encore de billets.</p>
+                            <a href="index.html" class="btn">Acheter des billets</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                this.displayTickets(tickets);
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement des tickets:', error);
+                
+                // Fallback vers le stockage local
+                const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
+                const userTickets = allTickets.filter(ticket => 
+                    ticket.user === window.authManager.username || 
+                    String(ticket.user_id) === String(window.authManager.userId)
+                );
+                
+                const ticketsContainer = document.getElementById('tickets-container');
+                if (ticketsContainer) {
+                    if (userTickets.length === 0) {
+                        ticketsContainer.innerHTML = `
+                            <div class="no-tickets">
+                                <p>Vous n'avez pas encore de billets.</p>
+                                <a href="index.html" class="btn">Acheter des billets</a>
+                            </div>
+                        `;
+                    } else {
+                        this.displayTickets(userTickets);
+                    }
+                }
             }
-            
-            const tickets = await response.json();
-            console.log('Tickets récupérés :', tickets);
-            this.displayTickets(tickets);
-            
-        } catch (error) {
-            console.error('Erreur API tickets:', error);
-            
-            // Fallback vers le stockage local
-            const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
-            console.log('Utilisation du stockage local, tickets disponibles:', allTickets.length);
-            
-            // Filtrer pour ne garder que les tickets de l'utilisateur connecté
-            const userTickets = allTickets.filter(ticket => {
-                return ticket.user === window.authManager.username || 
-                       String(ticket.user_id) === String(window.authManager.userId);
-            });
-            
-            console.log('Tickets filtrés pour l\'utilisateur:', userTickets.length);
-            this.displayTickets(userTickets);
         }
-        
-    } catch (error) {
-        console.error('Erreur générale:', error);
-        const ticketsContainer = document.getElementById('tickets-container');
-        if (ticketsContainer) {
-            ticketsContainer.innerHTML = `
-                <div class="error-message">
-                    <p>${error.message}</p>
-                    <a href="index.html" class="btn">Retour à l'accueil</a>
-                </div>`;
-        }
-    }
-}
         
         displayTickets(tickets) {
             const ticketsContainer = document.getElementById('tickets-container');

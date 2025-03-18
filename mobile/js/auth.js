@@ -61,8 +61,17 @@
                 });
             });
             
-            // Afficher le bouton login/logout approprié
+            // Afficher les liens appropriés selon l'état de connexion
             this.updateUI();
+            
+            // Ouvrir le modal de connexion au clic sur le lien
+            const loginLink = document.getElementById('login-link');
+            if (loginLink) {
+                loginLink.addEventListener('click', e => {
+                    e.preventDefault();
+                    this.showLoginModal();
+                });
+            }
         }
         
         async handleLogin(event) {
@@ -102,12 +111,11 @@
                     credentials: 'include'
                 });
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erreur de connexion');
-                }
-                
                 const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Erreur de connexion');
+                }
                 
                 // Sauvegarder le token et les infos utilisateur
                 localStorage.setItem('api_token', data.token);
@@ -127,34 +135,8 @@
                 window.location.reload();
                 
             } catch (error) {
-                // En cas d'échec de l'API, utiliser l'authentification locale simulée
-                console.error('Erreur API login:', error);
-                
-                // Récupérer les utilisateurs du stockage local
-                const users = JSON.parse(localStorage.getItem('users') || '[]');
-                const user = users.find(u => u.username === username && u.password === password);
-                
-                if (user) {
-                    // Générer un token factice
-                    const token = `token_${username}_${Date.now()}`;
-                    localStorage.setItem('api_token', token);
-                    localStorage.setItem('username', username);
-                    localStorage.setItem('user_id', Date.now());
-                    
-                    this.token = token;
-                    this.username = username;
-                    this.userId = Date.now();
-                    this.isLoggedIn = true;
-                    this.updateUI();
-                    
-                    // Fermer la modal
-                    hideModal(document.getElementById('login-modal'));
-                    
-                    // Recharger la page
-                    window.location.reload();
-                } else {
-                    alert("Identifiants incorrects. Veuillez réessayer.");
-                }
+                console.error('Erreur lors de la connexion:', error);
+                alert("Identifiants incorrects ou problème de connexion au serveur.");
             }
         }
         
@@ -206,100 +188,87 @@
                     credentials: 'include'
                 });
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erreur d\'inscription');
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    const errorMsg = data.errors ? Object.values(data.errors).flat().join('\n') : data.error;
+                    throw new Error(errorMsg || 'Erreur d\'inscription');
                 }
                 
+                // Si l'inscription est réussie, on peut soit connecter automatiquement l'utilisateur
+                // soit afficher un message de succès et rediriger vers la connexion
                 alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
                 
-                // Fermer la modal d'inscription et ouvrir celle de connexion
-                hideModal(document.getElementById('register-modal'));
-                showModal(document.getElementById('login-modal'));
-                
-                // Pré-remplir le champ du nom d'utilisateur
-                const loginUsernameInput = document.getElementById('login-email');
-                if (loginUsernameInput) {
-                    loginUsernameInput.value = username;
+                if (data.token) {
+                    // Auto-connexion
+                    localStorage.setItem('api_token', data.token);
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('user_id', data.user.id);
+                    
+                    this.token = data.token;
+                    this.username = username;
+                    this.userId = data.user.id;
+                    this.isLoggedIn = true;
+                    this.updateUI();
+                    
+                    // Recharger la page
+                    window.location.reload();
+                } else {
+                    // Rediriger vers la connexion
+                    hideModal(document.getElementById('register-modal'));
+                    showModal(document.getElementById('login-modal'));
+                    
+                    // Pré-remplir le champ du nom d'utilisateur
+                    const loginUsernameInput = document.getElementById('login-email');
+                    if (loginUsernameInput) {
+                        loginUsernameInput.value = username;
+                    }
                 }
                 
             } catch (error) {
-                // En cas d'échec de l'API, utiliser l'inscription locale simulée
-                console.error('Erreur API inscription:', error);
-                
-                // Récupérer les utilisateurs du stockage local
-                const users = JSON.parse(localStorage.getItem('users') || '[]');
-                
-                // Vérifier si l'utilisateur existe déjà
-                if (users.some(u => u.username === username)) {
-                    alert("Ce nom d'utilisateur est déjà utilisé");
-                    return;
-                }
-                
-                if (users.some(u => u.email === email)) {
-                    alert("Cette adresse email est déjà utilisée");
-                    return;
-                }
-                
-                // Ajouter le nouvel utilisateur
-                users.push({
-                    username,
-                    email,
-                    password,
-                    created_at: new Date().toISOString()
-                });
-                
-                // Sauvegarder les utilisateurs
-                localStorage.setItem('users', JSON.stringify(users));
-                
-                alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
-                
-                // Fermer la modal d'inscription et ouvrir celle de connexion
-                hideModal(document.getElementById('register-modal'));
-                showModal(document.getElementById('login-modal'));
-                
-                // Pré-remplir le champ du nom d'utilisateur
-                const loginUsernameInput = document.getElementById('login-email');
-                if (loginUsernameInput) {
-                    loginUsernameInput.value = username;
-                }
+                console.error('Erreur lors de l\'inscription:', error);
+                alert(`Erreur: ${error.message}`);
             }
         }
         
-        handleLogout(event) {
+        async handleLogout(event) {
             if (event) {
                 event.preventDefault();
             }
             
-            // Tenter de déconnecter via l'API
-            if (this.token && this.token.startsWith('Token ')) {
-                // Appel à l'API de déconnexion (facultatif selon configuration Django)
-                fetch(`${API_BASE_URL}/user/logout/`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': this.token,
-                        'Content-Type': 'application/json'
-                    }
-                }).catch(err => console.error('Erreur de déconnexion API:', err));
-            }
-            
-            // Nettoyer le stockage local
-            localStorage.removeItem('api_token');
-            localStorage.removeItem('username');
-            localStorage.removeItem('user_id');
-            
-            this.token = null;
-            this.isLoggedIn = false;
-            this.username = null;
-            this.userId = null;
-            
-            this.updateUI();
-            
-            // Rediriger vers la page d'accueil si on est sur une page protégée
-            if (window.location.pathname.includes('ticket.html')) {
-                window.location.href = 'index.html';
-            } else {
-                window.location.reload();
+            try {
+                // Tenter de déconnecter via l'API
+                if (this.token) {
+                    await fetch(`${API_BASE_URL}/user/logout/`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Token ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+                }
+            } catch (err) {
+                console.error('Erreur de déconnexion API:', err);
+            } finally {
+                // Nettoyer le stockage local quoi qu'il arrive
+                localStorage.removeItem('api_token');
+                localStorage.removeItem('username');
+                localStorage.removeItem('user_id');
+                
+                this.token = null;
+                this.isLoggedIn = false;
+                this.username = null;
+                this.userId = null;
+                
+                this.updateUI();
+                
+                // Rediriger vers la page d'accueil si on est sur une page protégée
+                if (window.location.pathname.includes('ticket.html')) {
+                    window.location.href = 'index.html';
+                } else {
+                    window.location.reload();
+                }
             }
         }
         
@@ -315,12 +284,26 @@
                 if (registerLink) registerLink.style.display = 'none';
                 if (logoutLink) logoutLink.style.display = 'block';
                 if (ticketsLink) ticketsLink.style.display = 'block';
+                
+                // Mettre à jour d'autres éléments UI si nécessaire
+                const userDisplay = document.getElementById('user-display');
+                if (userDisplay) {
+                    userDisplay.textContent = `Bonjour, ${this.username}`;
+                    userDisplay.style.display = 'block';
+                }
+                
             } else {
                 // Utilisateur non connecté
                 if (loginLink) loginLink.style.display = 'block';
                 if (registerLink) registerLink.style.display = 'block';
                 if (logoutLink) logoutLink.style.display = 'none';
                 if (ticketsLink) ticketsLink.style.display = 'none';
+                
+                // Masquer d'autres éléments UI si nécessaire
+                const userDisplay = document.getElementById('user-display');
+                if (userDisplay) {
+                    userDisplay.style.display = 'none';
+                }
             }
         }
         

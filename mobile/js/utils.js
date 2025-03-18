@@ -57,7 +57,7 @@ async function apiCall(endpoint, options = {}) {
     const defaultOptions = {
         method: options.method || 'GET',
         headers: {
-            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Authorization': `Token ${token}`,
             'Content-Type': 'application/json'
         },
         credentials: 'include'
@@ -140,7 +140,7 @@ async function fetchTickets() {
 
         const response = await fetch(`${API_BASE_URL}/user/tickets/`, {
             headers: {
-                'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+                'Authorization': `Token ${token}`,
                 'Content-Type': 'application/json'
             },
             credentials: 'include'

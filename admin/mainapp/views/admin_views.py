@@ -22,7 +22,17 @@ from rest_framework import status
 from django.http import JsonResponse
 
 from rest_framework.authentication import TokenAuthentication
-# Import des modèles
+from django.contrib.auth import authenticate, login, logout
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.contrib.auth.models import User
+from rest_framework.response import Response
+from django.db import IntegrityError
+import uuid
+from ..serializers import UserRegistrationSerializer, UserSerializer
+from django.contrib.auth.hashers import make_password
 from mainapp.models import Event, Team, Stadium, Ticket
 from mainapp.serializers import EventSerializer, TeamSerializer, StadiumSerializer, TicketSerializer
 from django.views.decorators.csrf import csrf_exempt
@@ -314,20 +324,17 @@ class PurchaseTicketAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-from rest_framework.authentication import TokenAuthentication
-
 class UserTicketsAPIView(APIView):
     """
     API pour récupérer les tickets d'un utilisateur
     """
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
         tickets = Ticket.objects.filter(user=request.user)
         serializer = TicketSerializer(tickets, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
+        return Response(serializer.data)
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def user_login(request):
@@ -393,3 +400,147 @@ def user_logout(request):
         return Response({'message': 'Déconnexion réussie'}, status=200)
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+class RegisterUserAPIView(APIView):
+    """
+    API d'inscription pour l'application mobile
+    
+    Endpoint: POST /api/register/
+    Données requises:
+        - username: nom d'utilisateur
+        - email: email utilisateur
+        - password: mot de passe
+        - password_confirm: confirmation du mot de passe
+    
+    Returns:
+        - Informations utilisateur
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            try:
+                # Créer l'utilisateur
+                user = serializer.save()
+                
+                # Créer un token d'authentification
+                token, _ = Token.objects.get_or_create(user=user)
+                
+                return Response({
+                    "success": True,
+                    "token": token.key,
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email
+                    }
+                }, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response({
+                    "success": False,
+                    "error": "Un utilisateur avec ce nom existe déjà"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        return Response({
+            "success": False,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def user_login(request):
+    """
+    API pour la connexion des utilisateurs
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    if not username or not password:
+        return Response({
+            'success': False,
+            'error': 'Veuillez fournir un nom d\'utilisateur et un mot de passe'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = authenticate(username=username, password=password)
+    
+    if user:
+        # Créer ou récupérer le token
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            'success': True,
+            'token': token.key,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            }
+        }, status=status.HTTP_200_OK)
+    else:
+        return Response({
+            'success': False,
+            'error': 'Identifiants incorrects'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def user_logout(request):
+    """
+    API pour la déconnexion des utilisateurs
+    """
+    try:
+        # Supprimer le token pour se déconnecter
+        request.user.auth_token.delete()
+        return Response({
+            'success': True,
+            'message': 'Déconnexion réussie'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def user_register(request):
+    """
+    API pour l'inscription des utilisateurs
+    """
+    serializer = UserRegistrationSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        try:
+            user = User.objects.create_user(
+                username=serializer.validated_data['username'],
+                email=serializer.validated_data['email'],
+                password=serializer.validated_data['password'],
+                first_name=serializer.validated_data.get('first_name', ''),
+                last_name=serializer.validated_data.get('last_name', '')
+            )
+            
+            # Créer un token pour l'utilisateur
+            token, _ = Token.objects.get_or_create(user=user)
+            
+            return Response({
+                'success': True,
+                'message': 'Inscription réussie',
+                'token': token.key,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email
+                }
+            }, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response({
+                'success': False,
+                'error': 'Un utilisateur avec ce nom existe déjà'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response({
+        'success': False,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)

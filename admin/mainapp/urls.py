@@ -22,8 +22,12 @@ from .views.admin_views import (
     TicketListCreateAPIView,
     TicketDetailAPIView,
     LoginUserAPIView,
+    RegisterUserAPIView,
     PurchaseTicketAPIView,
-    UserTicketsAPIView
+    UserTicketsAPIView,
+    user_login,
+    user_register,
+    user_logout
 )
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -46,6 +50,11 @@ urlpatterns = [
     path('gestion/matches/<int:pk>/edit/', admin_match_edit, name='admin_match_edit'),
     path('gestion/matches/<int:pk>/delete/', admin_match_delete, name='admin_match_delete'),
     path('gestion/logout/', admin_logout, name='admin_logout'),
+
+    # Routes API - Authentification
+    path('api/user/login/', user_login, name='user_login'),
+    path('api/user/register/', user_register, name='user_register'),
+    path('api/user/logout/', user_logout, name='user_logout'),
 
     # Routes API - Gestion des événements, équipes et stades
     path('api/v1/events/', EventListCreateAPIView.as_view(), name='event-list'),
@@ -80,11 +89,8 @@ urlpatterns = [
     path('api/user/tickets/', UserTicketsAPIView.as_view(), name='user_tickets'),
     path('api/tickets/verify/<str:uuid>/', VerifyTicketAPIView.as_view(), name='verify_ticket'),
     path('api/health-check/', health_check, name='health_check'),
+    
+    # Routes de l'API d'authentification
+    path('api/login/', LoginUserAPIView.as_view(), name='api_login'),
+    path('api/register/', RegisterUserAPIView.as_view(), name='api_register'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-# Ajoutez ces imports si nécessaire
-from .views.admin_views import user_login, user_register, user_logout
-
-# Ajoutez ces URL dans urlpatterns
-path('api/user/login/', user_login, name='user_login'),
-path('api/user/register/', user_register, name='user_register'),
-path('api/user/logout/', user_logout, name='user_logout'),
