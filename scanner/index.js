@@ -1,10 +1,10 @@
+// Importez QrScanner au début de votre fichier
+import QrScanner from './qr-scanner.min.js';
+
 // Configuration
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Éléments DOM
-const video = document.getElementById('video');
-const startButton = document.getElementById('start-button');
-const stopButton = document.getElementById('stop-button');
 const fileInput = document.getElementById('file-input');
 const result = document.getElementById('result');
 const ticketStatus = document.getElementById('ticket-status');
@@ -13,11 +13,8 @@ const validateSection = document.getElementById('validate-section');
 const validateButton = document.getElementById('validate-button');
 const cancelButton = document.getElementById('cancel-button');
 const loader = document.getElementById('loader');
-const tabs = document.querySelectorAll('.tab');
-const tabContents = document.querySelectorAll('.tab-content');
 
-// Variable pour stocker l'instance du scanner et l'UUID du ticket
-let scanner = null;
+// Variable pour stocker l'UUID du ticket
 let currentTicketUuid = null;
 
 // Récupérer un cookie (pour CSRF)
@@ -37,76 +34,19 @@ function getCookie(name) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Gestion des onglets
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            tab.classList.add('active');
-            document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
-            
-            // Arrêter le scanner si on change d'onglet
-            if (scanner) {
-                scanner.stop();
-                stopButton.style.display = 'none';
-                startButton.style.display = 'inline-block';
-            }
-            
-            // Réinitialiser les résultats
-            resetResults();
-        });
-    });
-    
-    // Initialiser le scanner de QR code
-    startButton.addEventListener('click', () => {
-        // Créer l'instance du scanner si elle n'existe pas déjà
-        if (!scanner) {
-            scanner = new QrScanner(
-                video, 
-                result => {
-                    handleScanResult(result);
-                    // Ne pas arrêter le scanner pour permettre plusieurs scans
-                },
-                {
-                    highlightScanRegion: true,
-                    highlightCodeOutline: true,
-                    workerPath: 'https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner-worker.min.js'
-                }
-            );
-        }
-        
-        scanner.start().then(() => {
-            startButton.style.display = 'none';
-            stopButton.style.display = 'inline-block';
-            resetResults();
-        }).catch(err => {
-            alert(`Erreur lors du démarrage de la caméra: ${err.message}`);
-        });
-    });
-    
-    // Arrêter le scanner
-    stopButton.addEventListener('click', () => {
-        if (scanner) {
-            scanner.stop();
-            stopButton.style.display = 'none';
-            startButton.style.display = 'inline-block';
-        }
-    });
-    
     // Scanner via un fichier image
     fileInput.addEventListener('change', event => {
         const file = event.target.files[0];
         if (!file) return;
         
         resetResults();
+        loader.classList.remove('hidden');
         
-        QrScanner.scanImage(file, { 
-            workerPath: 'https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner-worker.min.js'
-        })
+        QrScanner.scanImage(file)
             .then(result => handleScanResult(result))
             .catch(error => {
-                alert(`Erreur lors de la lecture du QR code: ${error.message}`);
+                loader.classList.add('hidden');
+                displayError(`Impossible de lire le QR code : ${error.message}`, "N/A");
                 console.error('Erreur scan:', error);
             });
     });
@@ -114,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gérer la validation du billet
     validateButton.addEventListener('click', () => {
         if (!currentTicketUuid) return;
-        
         validateTicket(currentTicketUuid);
     });
     
@@ -149,10 +88,6 @@ function handleScanResult(scanResult) {
 function verifyTicket(ticketUuid) {
     console.log('Vérification du ticket:', ticketUuid);
     currentTicketUuid = ticketUuid;
-    
-    // Afficher le loader
-    loader.classList.remove('hidden');
-    result.classList.add('hidden');
     
     // Faire l'appel API pour vérifier le ticket
     fetch(`${API_BASE_URL}/tickets/verify/${ticketUuid}/`)
@@ -322,38 +257,58 @@ function displayTicketResult(data, ticketUuid) {
         // Détails du ticket
         const ticket = data.ticket;
         const eventDetails = ticket.event_details;
-        const matchDate = new Date(eventDetails.time);
         
-        ticketDetails.innerHTML = `
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Match:</div>
-                <div class="ticket-info-value">${eventDetails.team_home_name} vs ${eventDetails.team_away_name}</div>
-            </div>
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Date:</div>
-                <div class="ticket-info-value">${matchDate.toLocaleDateString('fr-FR')}</div>
-            </div>
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Heure:</div>
-                <div class="ticket-info-value">${matchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
-            </div>
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Stade:</div>
-                <div class="ticket-info-value">${eventDetails.stadium_name || 'Non précisé'}</div>
-            </div>
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Catégorie:</div>
-                <div class="ticket-info-value">${ticket.ticket_type || ticket.category}</div>
-            </div>
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Place:</div>
-                <div class="ticket-info-value">${ticket.seat || ticket.seat_number || 'Non assignée'}</div>
-            </div>
-            <div class="ticket-info-row">
-                <div class="ticket-info-label">Référence:</div>
-                <div class="ticket-info-value">${ticket.id}</div>
-            </div>
-        `;
+        // Vérifier si les détails de l'événement existent
+        if (eventDetails && eventDetails.time) {
+            const matchDate = new Date(eventDetails.time);
+            
+            ticketDetails.innerHTML = `
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Match:</div>
+                    <div class="ticket-info-value">${eventDetails.team_home_name} vs ${eventDetails.team_away_name}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Date:</div>
+                    <div class="ticket-info-value">${matchDate.toLocaleDateString('fr-FR')}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Heure:</div>
+                    <div class="ticket-info-value">${matchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Stade:</div>
+                    <div class="ticket-info-value">${eventDetails.stadium_name || 'Non précisé'}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Catégorie:</div>
+                    <div class="ticket-info-value">${ticket.ticket_type || ticket.category}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Place:</div>
+                    <div class="ticket-info-value">${ticket.seat || ticket.seat_number || 'Non assignée'}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Référence:</div>
+                    <div class="ticket-info-value">${ticket.id}</div>
+                </div>
+            `;
+        } else {
+            // Gérer le cas où les détails de l'événement sont manquants
+            ticketDetails.innerHTML = `
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">ID du billet:</div>
+                    <div class="ticket-info-value">${ticket.id || ticketUuid}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Catégorie:</div>
+                    <div class="ticket-info-value">${ticket.ticket_type || ticket.category || 'Non précisée'}</div>
+                </div>
+                <div class="ticket-info-row">
+                    <div class="ticket-info-label">Informations:</div>
+                    <div class="ticket-info-value">Détails complets non disponibles</div>
+                </div>
+            `;
+        }
     } else {
         // Ticket invalide
         result.classList.add('invalid');
@@ -390,7 +345,7 @@ function displayError(errorMessage, ticketUuid) {
     ticketStatus.innerHTML = `
         <div class="ticket-status status-invalid">
             <h3>✗ ERREUR</h3>
-            <p>Impossible de vérifier ce billet: ${errorMessage}</p>
+            <p>${errorMessage}</p>
             <p>ID scanné: ${ticketUuid}</p>
         </div>
     `;

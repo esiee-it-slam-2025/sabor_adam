@@ -4,12 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanneur de Billets - Paris 2024</title>
-    <!-- QR Scanner library -->
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
-    <script>
-        // Configuration globale du chemin du worker pour QR Scanner
-        QrScanner.WORKER_PATH = 'https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner-worker.min.js';
-    </script>
+    <!-- Changez la façon de charger le script QR Scanner -->
+    <script src="qr-scanner.min.js" type="module"></script>
     <style>
         :root {
             --primary-color: #0078d7;
@@ -54,24 +50,13 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        .scanner-section {
-            margin-bottom: 30px;
+        .file-upload {
+            margin: 30px 0;
+            text-align: center;
         }
 
-        .video-container {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            overflow: hidden;
-            border: 2px solid var(--light-gray);
-            border-radius: 8px;
-            position: relative;
-        }
-
-        #video {
-            width: 100%;
-            height: auto;
-            display: block;
+        .file-upload input {
+            margin: 20px 0;
         }
 
         .scan-result {
@@ -137,41 +122,6 @@
             background-color: #c0392b;
         }
 
-        .file-upload {
-            margin: 20px 0;
-        }
-
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 12px 20px;
-            text-align: center;
-            background-color: #eee;
-            border: 1px solid var(--light-gray);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .tab.active {
-            background-color: var(--primary-color);
-            color: var(--white);
-            border-color: var(--primary-color);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
         .loader {
             border: 4px solid var(--light-gray);
             border-top: 4px solid var(--primary-color);
@@ -221,6 +171,14 @@
             color: var(--error-color);
         }
 
+        .upload-instructions {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 15px;
@@ -253,31 +211,17 @@
     </header>
 
     <div class="container">
-        <div class="tabs">
-            <div class="tab active" data-tab="camera">Scanner avec caméra</div>
-            <div class="tab" data-tab="upload">Uploader une image</div>
+        <div class="upload-instructions">
+            <h3>Comment vérifier un billet</h3>
+            <p>1. Téléchargez l'image du QR code du billet</p>
+            <p>2. Uploadez l'image ci-dessous</p>
+            <p>3. Vérifiez les informations du billet et validez-le si nécessaire</p>
         </div>
 
-        <div class="tab-content active" id="camera-tab">
-            <div class="scanner-section">
-                <h2>Scanner un QR Code avec la caméra</h2>
-                <p>Placez le QR Code du billet face à la caméra pour le scanner.</p>
-                
-                <div class="video-container">
-                    <video id="video"></video>
-                </div>
-                
-                <button id="start-button" class="btn">Démarrer la caméra</button>
-                <button id="stop-button" class="btn" style="display: none;">Arrêter la caméra</button>
-            </div>
-        </div>
-
-        <div class="tab-content" id="upload-tab">
-            <div class="file-upload">
-                <h2>Uploader une image de QR Code</h2>
-                <p>Sélectionnez une image contenant un QR Code de billet.</p>
-                <input type="file" id="file-input" accept="image/*">
-            </div>
+        <div class="file-upload">
+            <h2>Uploader une image de QR Code</h2>
+            <p>Sélectionnez une image contenant un QR Code de billet.</p>
+            <input type="file" id="file-input" accept="image/*">
         </div>
 
         <div id="loader" class="loader hidden"></div>
@@ -295,7 +239,7 @@
             </div>
         </div>
     </div>
-<!-- Assurez-vous d'ajouter cette ligne à la fin du body -->
-<script src="index.js"></script>
+    <!-- Chargez votre script principal en tant que module -->
+    <script src="index.js" type="module"></script>
 </body>
 </html>
