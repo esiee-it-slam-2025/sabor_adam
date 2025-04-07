@@ -604,3 +604,52 @@ h1 {
     background-color: var(--white);
     min-width: 200px;
 }
+/* Style pour l'affichage des équipes et des drapeaux */
+.match-teams {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1rem;
+    text-align: center;
+}
+
+.team-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.fi {
+    width: 1.5em;
+    height: 1em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.team-home, .team-away {
+    font-weight: bold;
+}
+
+.vs {
+    padding: 0 1rem;
+    color: var(--text-light);
+    font-weight: bold;
+}
+/* Fichier : mobile/css/flags.css */
+.flag-icon {
+    display: inline-block;
+    width: 1.5em;
+    height: 1em;
+    background-size: contain;
+    background-position: 50%;
+    background-repeat: no-repeat;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.flag-icon-fr { background-image: url(../assets/flags/fr.svg); }
+.flag-icon-us { background-image: url(../assets/flags/us.svg); }
+.flag-icon-ar { background-image: url(../assets/flags/ar.svg); }
+.flag-icon-es { background-image: url(../assets/flags/es.svg); }
+.flag-icon-ma { background-image: url(../assets/flags/ma.svg); }
+/* Ajoutez d'autres pays selon vos besoins */

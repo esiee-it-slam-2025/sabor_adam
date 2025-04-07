@@ -322,6 +322,8 @@ Il définit une classe AuthManager qui :
             const registerLink = document.getElementById('switch-to-register');
             const logoutLink = document.getElementById('logout-link');
             const ticketsLink = document.getElementById('tickets-link');
+            const userDisplay = document.getElementById('user-display');
+            const usernameDisplay = document.getElementById('username-display');
             
             if (this.isLoggedIn) {
                 // Si connecté : cache connexion/inscription, affiche déconnexion/billets
@@ -331,10 +333,11 @@ Il définit une classe AuthManager qui :
                 if (ticketsLink) ticketsLink.style.display = 'block';
                 
                 // Met à jour l'affichage du nom d'utilisateur
-                const userDisplay = document.getElementById('user-display');
                 if (userDisplay) {
-                    userDisplay.textContent = `Bonjour, ${this.username}`;
                     userDisplay.style.display = 'block';
+                }
+                if (usernameDisplay) {
+                    usernameDisplay.textContent = this.username;
                 }
                 
             } else {
@@ -345,7 +348,6 @@ Il définit une classe AuthManager qui :
                 if (ticketsLink) ticketsLink.style.display = 'none';
                 
                 // Cache l'affichage du nom d'utilisateur
-                const userDisplay = document.getElementById('user-display');
                 if (userDisplay) {
                     userDisplay.style.display = 'none';
                 }

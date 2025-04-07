@@ -16,7 +16,10 @@ Il contient :
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Configuration pour le responsive design -->
     <title>Paris 2024 - Football</title> <!-- Titre de la page dans l'onglet du navigateur -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css"> <!-- Import des styles CSS -->
+ <!-- Ajout de la bibliothèque flag-icons -->
+
+   <link rel="stylesheet" href="css/styles.css"> <!-- Import des styles CSS -->
+   
 </head>
 <body>
     <!-- Barre de navigation -->
@@ -34,7 +37,8 @@ Il contient :
                 <!-- display: none le cache par défaut, il sera affiché via JavaScript quand l'utilisateur se connecte -->
                 <!-- L'attribut id="tickets-link" permet de le manipuler facilement en JavaScript -->
                 <a href="ticket.html" class="nav-link" id="tickets-link" style="display: none;">Mes Billets</a>
-                
+                <span id="user-display" class="user-display" style="display: none;">Bonjour, <span id="username-display"></span></span>
+
                 <!-- Bouton de déconnexion, caché par défaut -->
                 <!-- Sera affiché via JavaScript une fois l'utilisateur connecté -->
                 <!-- Le href="#" indique que l'action sera gérée en JavaScript plutôt que par navigation -->

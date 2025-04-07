@@ -20,7 +20,7 @@ Le fichier est structuré en 3 parties principales :
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Configuration pour le responsive design -->
     <title>Mes Billets - Paris 2024</title> <!-- Titre affiché dans l'onglet du navigateur -->
     <link rel="stylesheet" href="css/styles.css"> <!-- Import du fichier CSS principal -->
-    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script> <!-- Import de la bibliothèque QRious pour générer les QR codes -->
+        <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script> <!-- Import de la bibliothèque QRious pour générer les QR codes -->
     
 </head>
 <body>
@@ -31,6 +31,8 @@ Le fichier est structuré en 3 parties principales :
             <div class="nav-links">
                 <a href="index.html" class="nav-link">Matchs</a> <!-- Lien vers la page des matchs -->
                 <a href="#" class="nav-link active" id="tickets-link">Mes Billets</a> <!-- Page courante -->
+                <span id="user-display" class="user-display" style="display: none;">Bonjour, <span id="username-display"></span></span>
+
                 <a href="#" class="nav-link" id="logout-link">Déconnexion</a> <!-- Bouton de déconnexion -->
                 <a href="#" class="nav-link" id="login-link" style="display: none;">Se connecter</a> <!-- Bouton de connexion (caché par défaut) -->
             </div>

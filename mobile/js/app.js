@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     accessFilter.addEventListener("change", displayMatches);
     sortFilter.addEventListener("change", displayMatches);
     displayMatches();
+    
     // Fonction asynchrone principale qui :
     // 1. Récupère les matchs depuis l'API
     // 2. Génère le HTML pour chaque match
@@ -61,14 +62,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="team-away">${match.team_away_name}</span>
                     </div>
                     <div class="match-stadium">🏟️ ${match.stadium_name}</div>
-    
+            
                     <div class="access-icons">
-                        ${match.stadium_accessibility.motor ? '<i class="fa-solid fa-wheelchair"></i>' : ''}
-                        ${match.stadium_accessibility.visual ? '<i class="fa-solid fa-eye"></i>' : ''}
-                        ${match.stadium_accessibility.hearing ? '<i class="fa-solid fa-ear-listen"></i>' : ''}
-                        ${match.stadium_accessibility.mental ? '<i class="fa-solid fa-brain"></i>' : ''}
+                        ${match.stadium_accessibility && match.stadium_accessibility.motor ? '<i class="fa-solid fa-wheelchair"></i>' : ''}
+                        ${match.stadium_accessibility && match.stadium_accessibility.visual ? '<i class="fa-solid fa-eye"></i>' : ''}
+                        ${match.stadium_accessibility && match.stadium_accessibility.hearing ? '<i class="fa-solid fa-ear-listen"></i>' : ''}
+                        ${match.stadium_accessibility && match.stadium_accessibility.mental ? '<i class="fa-solid fa-brain"></i>' : ''}
                     </div>
-    
+            
                     <button class="buy-button" data-match-id="${match.id}">
                         ${window.authManager && window.authManager.isLoggedIn ? 
                           'Acheter un billet' : 'Connectez-vous pour acheter'}
@@ -111,4 +112,4 @@ document.addEventListener('DOMContentLoaded', function() {
                 return matches;
         }
     }
-}); 
+});
