@@ -1,43 +1,57 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="fr">
+<!-- 
+Vue d'ensemble du fichier :
+Ce template Django gère la page de connexion pour l'interface d'administration.
+Il affiche un formulaire de login stylisé aux couleurs des JO 2024 permettant aux administrateurs
+de s'authentifier avec leur identifiant et mot de passe.
+Le template utilise une feuille de style dédiée (login.css) et intègre la sécurité CSRF de Django.
+-->
+
+{% load static %}  {# Charge le module Django 'static' qui permet d'utiliser des fichiers statiques (CSS, JS, images) #}
+
+<!DOCTYPE html>  {# Déclare que ce document est en HTML5 #}
+<html lang="fr">  {# Balise racine HTML avec français comme langue par défaut #}
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JO 2024 | Administration</title>
-    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <meta charset="UTF-8">  {# Définit l'encodage des caractères en UTF-8 pour supporter les accents #}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  {# Configure l'affichage responsive sur mobile #}
+    <title>JO 2024 | Administration</title>  {# Titre affiché dans l'onglet du navigateur #}
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">  {# Importe la feuille de style login.css depuis le dossier static #}
 </head>
 <body>
-    <div class="login-page">
-        <div class="login-content">
-            <div class="logo-section">
-                <h1>PARIS 2024</h1>
+    {# Structure principale de la page avec des div imbriquées pour le positionnement #}
+    <div class="login-page">  {# Conteneur principal de la page #}
+        <div class="login-content">  {# Conteneur du contenu de login #}
+            <div class="logo-section">  {# Section contenant le logo/titre #}
+                <h1>PARIS 2024</h1>  {# Titre principal #}
             </div>
 
-            <div class="login-box">
-                <h2>Espace Administrateur</h2>
-                <h3>Gestion des compétitions de football</h3>
+            <div class="login-box">  {# Boîte contenant le formulaire de connexion #}
+                <h2>Espace Administrateur</h2>  {# Sous-titre indiquant la zone admin #}
+                <h3>Gestion des compétitions de football</h3>  {# Précision sur la fonction #}
 
+                {# Formulaire de connexion - method="post" car on envoie des données sensibles #}
                 <form method="post" class="login-form">
-                    {% csrf_token %}
+                    {% csrf_token %}  {# Token de sécurité Django obligatoire pour les formulaires POST - Protège contre les attaques CSRF #}
                     
+                    {# Groupe pour l'identifiant #}
                     <div class="input-group">
-                        <label for="username">Identifiant</label>
-                        <input type="text" id="username" name="username" required>
+                        <label for="username">Identifiant</label>  {# Étiquette liée au champ username #}
+                        <input type="text" id="username" name="username" required>  {# Champ texte obligatoire pour l'identifiant #}
                     </div>
 
+                    {# Groupe pour le mot de passe #}
                     <div class="input-group">
-                        <label for="password">Mot de passe</label>
-                        <input type="password" id="password" name="password" required>
+                        <label for="password">Mot de passe</label>  {# Étiquette liée au champ password #}
+                        <input type="password" id="password" name="password" required>  {# Champ password qui masque la saisie #}
                     </div>
 
-                    {% if error %}
+                    {# Bloc conditionnel qui affiche les erreurs si elles existent #}
+                    {% if error %}  {# Variable 'error' passée par la vue Django #}
                         <div class="error">
-                            {{ error }}
+                            {{ error }}  {# Affiche le message d'erreur #}
                         </div>
                     {% endif %}
 
-                    <button type="submit">Se connecter</button>
+                    <button type="submit">Se connecter</button>  {# Bouton qui soumet le formulaire #}
                 </form>
             </div>
         </div>

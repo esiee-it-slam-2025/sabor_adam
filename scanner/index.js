@@ -1,30 +1,53 @@
-// Importez QrScanner au début de votre fichier
+/*******************************************************************************
+ * SCANNEUR DE BILLETS - PARIS 2024
+ * 
+ * Ce fichier gère la logique de scan et de vérification des billets via QR code.
+ * Fonctionnalités principales :
+ * - Scan de QR codes à partir d'images uploadées
+ * - Vérification de la validité des billets via une API
+ * - Mode hors-ligne avec stockage local (localStorage)
+ * - Affichage des informations du billet et de son statut
+ * - Validation des billets (marquage comme utilisés)
+ ******************************************************************************/
+
+// Import de la bibliothèque QR Scanner qui permet de lire les QR codes dans le navigateur
 import QrScanner from './qr-scanner.min.js';
 
-// Configuration
+// URL de base de l'API backend - en développement local sur le port 8000
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-// Éléments DOM
-const fileInput = document.getElementById('file-input');
-const result = document.getElementById('result');
-const ticketStatus = document.getElementById('ticket-status');
-const ticketDetails = document.getElementById('ticket-details');
-const validateSection = document.getElementById('validate-section');
-const validateButton = document.getElementById('validate-button');
-const cancelButton = document.getElementById('cancel-button');
-const loader = document.getElementById('loader');
+// Récupération de tous les éléments HTML nécessaires via leurs IDs
+// document.getElementById() retourne l'élément HTML qui a l'ID spécifié
+const fileInput = document.getElementById('file-input');        // Input pour uploader l'image
+const result = document.getElementById('result');              // Conteneur des résultats
+const ticketStatus = document.getElementById('ticket-status'); // Zone d'affichage du statut
+const ticketDetails = document.getElementById('ticket-details'); // Zone des détails du billet
+const validateSection = document.getElementById('validate-section'); // Section de validation
+const validateButton = document.getElementById('validate-button');   // Bouton de validation
+const cancelButton = document.getElementById('cancel-button');      // Bouton d'annulation
+const loader = document.getElementById('loader');              // Indicateur de chargement
 
-// Variable pour stocker l'UUID du ticket
+// Variable globale pour stocker l'identifiant unique du billet en cours de traitement
 let currentTicketUuid = null;
 
-// Récupérer un cookie (pour CSRF)
+/**
+ * Fonction utilitaire pour récupérer la valeur d'un cookie par son nom
+ * Utilisée notamment pour récupérer le token CSRF nécessaire pour les requêtes POST
+ * @param {string} name - Nom du cookie à récupérer
+ * @returns {string|null} - Valeur du cookie ou null si non trouvé
+ */
 function getCookie(name) {
     let cookieValue = null;
+    // Vérifie si des cookies existent
     if (document.cookie && document.cookie !== '') {
+        // Découpe la chaîne des cookies en tableau (séparés par des points-virgules)
         const cookies = document.cookie.split(';');
+        // Parcourt chaque cookie
         for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
+            const cookie = cookies[i].trim(); // Enlève les espaces
+            // Vérifie si ce cookie correspond au nom recherché
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                // Extrait et décode la valeur du cookie
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
@@ -33,38 +56,49 @@ function getCookie(name) {
     return cookieValue;
 }
 
+/**
+ * Initialisation des écouteurs d'événements quand le DOM est chargé
+ * DOMContentLoaded est déclenché quand le HTML est complètement chargé et analysé
+ */
 document.addEventListener('DOMContentLoaded', function() {
-    // Scanner via un fichier image
+    // Écouteur pour détecter quand un fichier est sélectionné
     fileInput.addEventListener('change', event => {
+        // Récupère le premier fichier sélectionné (files[0])
         const file = event.target.files[0];
-        if (!file) return;
+        if (!file) return; // Sort si aucun fichier n'est sélectionné
         
-        resetResults();
-        loader.classList.remove('hidden');
+        resetResults(); // Réinitialise l'affichage
+        loader.classList.remove('hidden'); // Affiche le loader
         
+        // Tente de scanner l'image avec QrScanner
         QrScanner.scanImage(file)
-            .then(result => handleScanResult(result))
+            .then(result => handleScanResult(result)) // Si succès, traite le résultat
             .catch(error => {
-                loader.classList.add('hidden');
+                loader.classList.add('hidden'); // Cache le loader
+                // Affiche l'erreur à l'utilisateur
                 displayError(`Impossible de lire le QR code : ${error.message}`, "N/A");
                 console.error('Erreur scan:', error);
             });
     });
     
-    // Gérer la validation du billet
+    // Écouteur pour le bouton de validation
     validateButton.addEventListener('click', () => {
         if (!currentTicketUuid) return;
         validateTicket(currentTicketUuid);
     });
     
-    // Annuler la validation
+    // Écouteur pour le bouton d'annulation
     cancelButton.addEventListener('click', () => {
-        validateSection.classList.add('hidden');
+        validateSection.classList.add('hidden'); // Cache la section de validation
     });
 });
 
-// Réinitialiser les résultats
+/**
+ * Réinitialise l'interface utilisateur à son état initial
+ * Appelée avant chaque nouveau scan
+ */
 function resetResults() {
+    // Cache et réinitialise toutes les zones d'affichage
     result.classList.add('hidden');
     result.classList.remove('valid', 'invalid');
     ticketStatus.innerHTML = '';
@@ -73,53 +107,67 @@ function resetResults() {
     currentTicketUuid = null;
 }
 
-// Fonction pour gérer le résultat du scan
+/**
+ * Traite le résultat du scan du QR code
+ * @param {string|object} scanResult - Résultat du scan (peut être une chaîne ou un objet)
+ */
 function handleScanResult(scanResult) {
     console.log('QR Code scanné:', scanResult);
     
-    // Vérifier si c'est une chaîne ou un objet
+    // Extrait le contenu du QR code, qui peut être soit directement une chaîne
+    // soit un objet avec une propriété 'data'
     const qrContent = typeof scanResult === 'string' ? scanResult : scanResult.data;
     
-    // Vérifier si le ticket existe dans le système
+    // Lance la vérification du ticket avec l'UUID extrait
     verifyTicket(qrContent);
 }
 
-// Fonction pour vérifier la validité du ticket via l'API
+/**
+ * Vérifie la validité d'un ticket auprès de l'API
+ * @param {string} ticketUuid - Identifiant unique du ticket
+ */
 function verifyTicket(ticketUuid) {
     console.log('Vérification du ticket:', ticketUuid);
-    currentTicketUuid = ticketUuid;
+    currentTicketUuid = ticketUuid; // Stocke l'UUID pour utilisation ultérieure
     
-    // Faire l'appel API pour vérifier le ticket
+    // Appel à l'API de vérification
     fetch(`${API_BASE_URL}/tickets/verify/${ticketUuid}/`)
         .then(response => {
+            // Vérifie si la réponse est OK (status 200-299)
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Billet non trouvé dans le système');
                 }
                 throw new Error(`Erreur HTTP: ${response.status}`);
             }
-            return response.json();
+            return response.json(); // Parse la réponse en JSON
         })
         .then(data => {
-            displayTicketResult(data, ticketUuid);
+            displayTicketResult(data, ticketUuid); // Affiche le résultat
         })
         .catch(error => {
             console.error('Erreur API:', error);
             
-            // Fallback vers le stockage local
+            // En cas d'erreur, utilise le mode hors-ligne
             simulateVerifyTicket(ticketUuid);
         })
         .finally(() => {
-            loader.classList.add('hidden');
+            loader.classList.add('hidden'); // Cache toujours le loader à la fin
         });
 }
 
-// Fonction pour simuler la vérification sans backend
+/**
+ * Version hors-ligne de la vérification des tickets
+ * Utilise le localStorage comme base de données locale
+ * @param {string} ticketUuid - Identifiant unique du ticket
+ */
 function simulateVerifyTicket(ticketUuid) {
-    // Récupérer les billets du localStorage
+    // Récupère les tickets stockés localement
+    // localStorage.getItem retourne une chaîne qu'il faut parser en JSON
     const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
     
-    // Rechercher le billet par son UUID
+    // Recherche le ticket par son UUID
+    // Gère plusieurs formats possibles d'identifiants
     const ticket = allTickets.find(t => 
         t.ticket_uuid === ticketUuid || 
         t.id === ticketUuid || 
@@ -127,8 +175,9 @@ function simulateVerifyTicket(ticketUuid) {
     );
     
     if (ticket) {
-        // Vérifier si le billet a déjà été utilisé
+        // Si le ticket est trouvé, vérifie son statut
         if (ticket.status === 'USED') {
+            // Ticket déjà utilisé
             const data = {
                 valid: false,
                 message: "Ce billet a déjà été utilisé.",
@@ -137,7 +186,7 @@ function simulateVerifyTicket(ticketUuid) {
             };
             displayTicketResult(data, ticketUuid);
         } else {
-            // Simuler la réponse API avec un billet valide
+            // Ticket valide et non utilisé
             const data = {
                 valid: true,
                 message: "Billet valide.",
@@ -146,7 +195,7 @@ function simulateVerifyTicket(ticketUuid) {
             displayTicketResult(data, ticketUuid);
         }
     } else {
-        // Simuler la réponse API avec un billet invalide
+        // Ticket non trouvé dans le stockage local
         const data = {
             valid: false,
             message: "Billet non trouvé dans le système.",
@@ -157,20 +206,22 @@ function simulateVerifyTicket(ticketUuid) {
     loader.classList.add('hidden');
 }
 
-// Fonction pour valider un billet (le marquer comme utilisé)
+/**
+ * Marque un ticket comme utilisé via l'API
+ * @param {string} ticketUuid - Identifiant unique du ticket
+ */
 function validateTicket(ticketUuid) {
-    // Afficher le loader
     loader.classList.remove('hidden');
     validateSection.classList.add('hidden');
     
-    // Appel API pour marquer le billet comme utilisé
+    // Appel POST à l'API pour valider le ticket
     fetch(`${API_BASE_URL}/tickets/verify/${ticketUuid}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCookie('csrftoken') // Token CSRF pour sécurité
         },
-        credentials: 'include'
+        credentials: 'include' // Inclut les cookies dans la requête
     })
         .then(response => {
             if (!response.ok) {
@@ -181,8 +232,7 @@ function validateTicket(ticketUuid) {
         .then(data => {
             if (data.success) {
                 alert("✅ Billet marqué comme utilisé avec succès!");
-                // Recharger les informations du billet
-                verifyTicket(ticketUuid);
+                verifyTicket(ticketUuid); // Recharge les infos du ticket
             } else {
                 alert(`❌ Erreur: ${data.message}`);
             }
@@ -190,7 +240,7 @@ function validateTicket(ticketUuid) {
         .catch(error => {
             console.error('Erreur API:', error);
             
-            // Fallback vers le stockage local
+            // Fallback vers le mode hors-ligne
             simulateValidateTicket(ticketUuid);
         })
         .finally(() => {
@@ -198,12 +248,15 @@ function validateTicket(ticketUuid) {
         });
 }
 
-// Fonction pour simuler la validation du billet sans backend
+/**
+ * Version hors-ligne de la validation des tickets
+ * @param {string} ticketUuid - Identifiant unique du ticket
+ */
 function simulateValidateTicket(ticketUuid) {
-    // Récupérer les billets du localStorage
+    // Récupère les tickets du localStorage
     const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
     
-    // Trouver l'index du billet
+    // Trouve l'index du ticket dans le tableau
     const ticketIndex = allTickets.findIndex(t => 
         t.ticket_uuid === ticketUuid || 
         t.id === ticketUuid || 
@@ -211,17 +264,17 @@ function simulateValidateTicket(ticketUuid) {
     );
     
     if (ticketIndex !== -1) {
-        // Marquer le billet comme utilisé
+        // Marque le ticket comme utilisé avec la date actuelle
         allTickets[ticketIndex].status = 'USED';
         allTickets[ticketIndex].used_at = new Date().toISOString();
         
-        // Sauvegarder dans le localStorage
+        // Sauvegarde les modifications dans le localStorage
         localStorage.setItem('user_tickets', JSON.stringify(allTickets));
         
         alert("✅ Billet marqué comme utilisé avec succès!");
         validateSection.classList.add('hidden');
         
-        // Mettre à jour l'affichage
+        // Met à jour l'affichage
         const data = {
             valid: false,
             message: "Ce billet a déjà été utilisé.",
@@ -236,12 +289,16 @@ function simulateValidateTicket(ticketUuid) {
     loader.classList.add('hidden');
 }
 
-// Fonction pour afficher le résultat de la vérification
+/**
+ * Affiche les informations du ticket et son statut dans l'interface
+ * @param {Object} data - Données du ticket et son statut
+ * @param {string} ticketUuid - Identifiant unique du ticket
+ */
 function displayTicketResult(data, ticketUuid) {
     result.classList.remove('hidden');
     
     if (data.valid) {
-        // Ticket valide
+        // Affichage pour un ticket valide
         result.classList.add('valid');
         result.classList.remove('invalid');
         ticketStatus.innerHTML = `
@@ -251,17 +308,16 @@ function displayTicketResult(data, ticketUuid) {
             </div>
         `;
         
-        // Afficher l'option de validation
         validateSection.classList.remove('hidden');
         
-        // Détails du ticket
         const ticket = data.ticket;
         const eventDetails = ticket.event_details;
         
-        // Vérifier si les détails de l'événement existent
+        // Vérifie si les détails complets de l'événement sont disponibles
         if (eventDetails && eventDetails.time) {
             const matchDate = new Date(eventDetails.time);
             
+            // Affiche tous les détails du match
             ticketDetails.innerHTML = `
                 <div class="ticket-info-row">
                     <div class="ticket-info-label">Match:</div>
@@ -293,7 +349,7 @@ function displayTicketResult(data, ticketUuid) {
                 </div>
             `;
         } else {
-            // Gérer le cas où les détails de l'événement sont manquants
+            // Affichage minimal si les détails sont incomplets
             ticketDetails.innerHTML = `
                 <div class="ticket-info-row">
                     <div class="ticket-info-label">ID du billet:</div>
@@ -310,17 +366,17 @@ function displayTicketResult(data, ticketUuid) {
             `;
         }
     } else {
-        // Ticket invalide
+        // Affichage pour un ticket invalide
         result.classList.add('invalid');
         result.classList.remove('valid');
         
-        // Messages spécifiques selon le type d'erreur
         let statusMessage = `
             <div class="ticket-status status-invalid">
                 <h3>✗ BILLET INVALIDE</h3>
                 <p>${data.message}</p>
         `;
         
+        // Ajoute la date d'utilisation si le ticket a déjà été utilisé
         if (data.used_at) {
             const usedDate = new Date(data.used_at);
             statusMessage += `<p>Utilisé le: ${usedDate.toLocaleDateString('fr-FR')} à ${usedDate.toLocaleTimeString('fr-FR')}</p>`;
@@ -330,13 +386,15 @@ function displayTicketResult(data, ticketUuid) {
         
         ticketStatus.innerHTML = statusMessage;
         ticketDetails.innerHTML = '';
-        
-        // Cacher l'option de validation
         validateSection.classList.add('hidden');
     }
 }
 
-// Fonction pour afficher une erreur
+/**
+ * Affiche un message d'erreur dans l'interface
+ * @param {string} errorMessage - Message d'erreur à afficher
+ * @param {string} ticketUuid - Identifiant du ticket concerné
+ */
 function displayError(errorMessage, ticketUuid) {
     result.classList.remove('hidden');
     result.classList.add('invalid');

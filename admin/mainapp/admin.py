@@ -7,7 +7,11 @@ from mainapp.models import Event, Team, Stadium, Ticket
 @admin.register(Stadium)
 class StadiumAdmin(admin.ModelAdmin):
     list_display = [
-        'name'
+        'name',
+        'access_motor',
+        'access_mental',
+        'access_visual',
+        'access_hearing'
     ]
     search_fields = ('name',)
     ordering = ['name']
@@ -46,6 +50,7 @@ class EventAdmin(admin.ModelAdmin):
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = [
+        'user',
         'get_event_name',
         'ticket_type',
         'price',

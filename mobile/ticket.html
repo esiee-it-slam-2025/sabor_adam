@@ -1,101 +1,43 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!--
+Vue d'ensemble du fichier :
+Ce fichier est la page de gestion des billets de l'application mobile des JO Paris 2024.
+Il permet aux utilisateurs de :
+- Voir tous leurs billets achetés, regroupés par événement
+- Télécharger les QR codes de leurs billets
+- Supprimer leurs billets
+- Voir les détails de chaque billet (catégorie, prix, etc.)
+
+Le fichier est structuré en 3 parties principales :
+1. La structure HTML avec le style CSS intégré
+2. Le contenu de la page (navigation, en-tête, zone des billets)
+3. Le code JavaScript qui gère l'affichage dynamique et les interactions
+-->
+
+<!DOCTYPE html> <!-- Indique que c'est un document HTML5 -->
+<html lang="fr"> <!-- Balise racine avec français comme langue par défaut -->
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes Billets - Paris 2024</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
-    <style>
-        .tickets-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        
-        .ticket-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            width: 280px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            background-color: #fff;
-            transition: transform 0.3s ease;
-        }
-        
-        .ticket-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .ticket-group {
-            margin-bottom: 40px;
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        
-        .ticket-event-header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .ticket-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .download-btn {
-            padding: 8px 16px;
-            background-color: #0078d7;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-        
-        .download-btn:hover {
-            background-color: #0056b3;
-        }
-        
-        .delete-btn {
-            padding: 8px 16px;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-        
-        .delete-btn:hover {
-            background-color: #c0392b;
-        }
-    </style>
+    <meta charset="UTF-8"> <!-- Définit l'encodage des caractères en UTF-8 pour supporter les accents -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Configuration pour le responsive design -->
+    <title>Mes Billets - Paris 2024</title> <!-- Titre affiché dans l'onglet du navigateur -->
+    <link rel="stylesheet" href="css/styles.css"> <!-- Import du fichier CSS principal -->
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script> <!-- Import de la bibliothèque QRious pour générer les QR codes -->
+    
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Barre de navigation -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="index.html" class="brand">Paris 2024</a>
+            <a href="index.html" class="brand">Paris 2024</a> <!-- Logo/titre cliquable -->
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Matchs</a>
-                <a href="#" class="nav-link active" id="tickets-link">Mes Billets</a>
-                <a href="#" class="nav-link" id="logout-link">Déconnexion</a>
-                <a href="#" class="nav-link" id="login-link" style="display: none;">Se connecter</a>
+                <a href="index.html" class="nav-link">Matchs</a> <!-- Lien vers la page des matchs -->
+                <a href="#" class="nav-link active" id="tickets-link">Mes Billets</a> <!-- Page courante -->
+                <a href="#" class="nav-link" id="logout-link">Déconnexion</a> <!-- Bouton de déconnexion -->
+                <a href="#" class="nav-link" id="login-link" style="display: none;">Se connecter</a> <!-- Bouton de connexion (caché par défaut) -->
             </div>
         </div>
     </nav>
 
-    <!-- Contenu principal -->
+    <!-- En-tête de la page -->
     <header>
         <div class="header-content">
             <h1>Mes Billets - JO Paris 2024</h1>
@@ -103,75 +45,87 @@
         </div>
     </header>
 
+    <!-- Zone principale où seront affichés les billets -->
     <main id="tickets-container" class="tickets-grid">
-        <div class="loading">Chargement de vos billets...</div>
+        <div class="loading">Chargement de vos billets...</div> <!-- Message affiché pendant le chargement -->
     </main>
 
-    <!-- Scripts -->
-    <script src="js/utils.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/qrcode.js"></script>
-    <script src="js/ticket.js"></script>
+    <!-- Import des scripts JavaScript nécessaires -->
+    <script src="js/utils.js"></script> <!-- Fonctions utilitaires -->
+    <script src="js/auth.js"></script> <!-- Gestion de l'authentification -->
+    <script src="js/qrcode.js"></script> <!-- Gestion des QR codes -->
+    <script src="js/ticket.js"></script> <!-- Logique spécifique aux billets -->
     <script>
-        // Fonction globale pour supprimer un billet directement
+        // Fonction qui permet de supprimer un billet
         function deleteTicketDirectly(ticketId) {
             console.log("Suppression directe du billet ID:", ticketId);
             
+            // Demande confirmation à l'utilisateur avant suppression
             if (!confirm('Êtes-vous sûr de vouloir supprimer ce billet ? Cette action est irréversible.')) {
                 return;
             }
             
             try {
-                // Récupérer les billets du stockage local
+                // Récupère tous les billets stockés localement
+                // localStorage est une API web qui permet de stocker des données dans le navigateur
+                // JSON.parse convertit une chaîne JSON en objet JavaScript
                 const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
                 console.log("Total des billets avant suppression:", allTickets.length);
                 
-                // Trouver l'index du billet à supprimer
+                // Recherche l'index du billet à supprimer dans le tableau
+                // findIndex est une méthode qui retourne l'index du premier élément qui satisfait la condition
                 const ticketIndex = allTickets.findIndex(t => String(t.id) === String(ticketId));
                 console.log("Index du billet à supprimer:", ticketIndex);
                 
+                // Si le billet n'est pas trouvé (-1), affiche une erreur
                 if (ticketIndex === -1) {
                     alert("Billet non trouvé!");
                     return;
                 }
                 
-                // Supprimer le billet
+                // Supprime le billet du tableau (splice modifie le tableau original)
                 allTickets.splice(ticketIndex, 1);
                 console.log("Total des billets après suppression:", allTickets.length);
                 
-                // Enregistrer les billets mis à jour
+                // Sauvegarde le tableau mis à jour dans le localStorage
+                // JSON.stringify convertit un objet JavaScript en chaîne JSON
                 localStorage.setItem('user_tickets', JSON.stringify(allTickets));
                 
                 alert("Billet supprimé avec succès!");
                 
-                // Rafraîchir la page
+                // Recharge la page pour afficher les changements
                 window.location.reload();
             } catch (error) {
+                // En cas d'erreur, affiche l'erreur dans la console et à l'utilisateur
                 console.error("Erreur lors de la suppression:", error);
                 alert("Erreur lors de la suppression: " + error.message);
             }
         }
         
+        // Quand le DOM est complètement chargé, exécute ce code
         document.addEventListener('DOMContentLoaded', function() {
-            // Vérifier si l'utilisateur est connecté
+            // Vérifie si l'utilisateur est connecté, sinon redirige vers la page d'accueil
             if (!window.authManager || !window.authManager.isLoggedIn) {
                 window.location.href = 'index.html';
                 return;
             }
             
+            // Récupère l'élément qui contiendra les billets
             const ticketsContainer = document.getElementById('tickets-container');
             
-            // Récupérer les billets du stockage local
+            // Récupère tous les billets du localStorage
             const allTickets = JSON.parse(localStorage.getItem('user_tickets') || '[]');
             console.log("Tous les billets dans localStorage:", allTickets);
             
-            // Filtrer pour ne garder que les tickets de l'utilisateur connecté
+            // Filtre pour ne garder que les billets de l'utilisateur connecté
             const tickets = allTickets.filter(ticket => ticket.user === window.authManager.username);
             
+            // Affiche des informations de debug dans la console
             console.log("Billets de l'utilisateur:", tickets);
             console.log("Billets récupérés:", tickets.length);
             console.log("Identifiants des billets:", tickets.map(t => t.id));
             
+            // Si l'utilisateur n'a pas de billets, affiche un message et un lien pour en acheter
             if (!tickets || tickets.length === 0) {
                 ticketsContainer.innerHTML = `
                     <div class="no-tickets">
@@ -182,7 +136,7 @@
                 return;
             }
             
-            // Regrouper les billets par événement
+            // Regroupe les billets par événement dans un objet
             const ticketsByEvent = {};
             tickets.forEach(ticket => {
                 if (!ticketsByEvent[ticket.event]) {
@@ -191,13 +145,17 @@
                 ticketsByEvent[ticket.event].push(ticket);
             });
             
-            // Générer le HTML pour chaque groupe de billets
+            // Prépare le HTML à afficher
             let html = '';
             
+            // Pour chaque événement et ses billets associés
             Object.entries(ticketsByEvent).forEach(([eventId, eventTickets]) => {
+                // Récupère les détails de l'événement du premier billet
                 const event = eventTickets[0].event_details;
+                // Formate la date (fonction définie ailleurs)
                 const formattedDate = formatDate(event.time);
                 
+                // Crée le HTML pour le groupe d'événement
                 html += `
                     <div class="ticket-group">
                         <div class="ticket-event-header">
@@ -208,7 +166,9 @@
                         <div class="tickets-list">
                 `;
                 
+                // Pour chaque billet de l'événement
                 eventTickets.forEach(ticket => {
+                    // Crée le HTML pour le billet individuel
                     html += `
                         <div class="ticket-card">
                             <div class="ticket-info">
@@ -228,16 +188,19 @@
                     `;
                 });
                 
+                // Ferme les balises du groupe
                 html += `
                         </div>
                     </div>
                 `;
             });
             
+            // Insère tout le HTML généré dans le conteneur
             ticketsContainer.innerHTML = html;
             
-            // Générer les QR codes
+            // Attend un peu (500ms) puis génère les QR codes et ajoute les écouteurs d'événements
             setTimeout(() => {
+                // Génère un QR code pour chaque billet
                 tickets.forEach(ticket => {
                     new QRious({
                         element: document.getElementById(`qrcode-${ticket.id}`),
@@ -246,17 +209,22 @@
                     });
                 });
                 
-                // Ajouter les écouteurs pour le téléchargement
+                // Ajoute les écouteurs pour le téléchargement des QR codes
                 document.querySelectorAll('.download-btn').forEach(button => {
                     button.addEventListener('click', function() {
+                        // Récupère l'ID du billet depuis l'attribut data-
                         const ticketId = this.dataset.ticketId;
+                        // Récupère le canvas contenant le QR code
                         const canvas = document.getElementById(`qrcode-${ticketId}`);
                         
                         if (canvas) {
+                            // Convertit le canvas en URL de données
                             const dataUrl = canvas.toDataURL('image/png');
+                            // Crée un lien de téléchargement invisible
                             const link = document.createElement('a');
                             link.href = dataUrl;
                             link.download = `ticket-${ticketId}.png`;
+                            // Ajoute le lien au document, clique dessus, puis le supprime
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);

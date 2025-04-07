@@ -1,68 +1,124 @@
+<!-- 
+Vue d'ensemble du fichier :
+Ce template Django gère l'interface d'administration des matches de football.
+Il permet aux administrateurs de :
+- Voir la liste de tous les matches
+- Modifier les informations de chaque match (équipes, scores, stade, date)
+- Supprimer des matches
+- Sauvegarder toutes les modifications en une fois
+Le fichier utilise Bootstrap pour le style et JavaScript pour les interactions.
+-->
+
 <!DOCTYPE html>
+<!-- Définit que ce document est en HTML5 -->
 <html lang="fr">
+<!-- Balise racine HTML avec français comme langue -->
 <head>
+    <!-- En-tête du document contenant les métadonnées -->
     <meta charset="UTF-8">
+    <!-- Définit l'encodage des caractères en UTF-8 (support des accents) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Configure l'affichage sur mobile (responsive design) -->
     <title>Administration - Matches</title>
+    <!-- Titre de la page affiché dans l'onglet du navigateur -->
+    
+    <!-- Chargement des feuilles de style CSS -->
     <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- CSS personnalisé pour l'admin -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Ajout de Bootstrap -->
+    <!-- Font Awesome pour les icônes (ex: ballon de foot, déconnexion) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Ajout de flag-icons CSS -->
+    <!-- Framework Bootstrap pour le style général -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css">
+    <!-- Bibliothèque d'icônes de drapeaux nationaux -->
 </head>
+
 <body>
-    <!-- Navbar -->
+    <!-- Barre de navigation en haut de page -->
     <nav class="navbar navbar-dark bg-dark">
+        <!-- Navbar sombre de Bootstrap -->
         <div class="container-fluid">
+            <!-- Conteneur fluide qui prend toute la largeur -->
             <a class="navbar-brand" href="#">
-                <i class="fas fa-futbol me-2"></i>Administration des Matches
+                <!-- Logo/titre de la navbar, # signifie pas de lien -->
+                <i class="fas fa-futbol me-2"></i>
+                <!-- Icône de ballon, me-2 = marge à droite -->
+                Administration des Matches
             </a>
             <a href="{% url 'admin_logout' %}" class="btn btn-outline-light">
+                <!-- Bouton de déconnexion, utilise l'URL Django 'admin_logout' -->
                 <i class="fas fa-sign-out-alt"></i> Déconnexion
+                <!-- Icône de déconnexion -->
             </a>
         </div>
     </nav>
 
     <div class="container-fluid mt-4">
-        <!-- Messages de notification -->
+        <!-- Conteneur principal avec marge haute (mt-4) -->
+        
+        <!-- Section des messages de notification -->
         {% if messages %}
+            <!-- Vérifie s'il y a des messages Django à afficher -->
             {% for message in messages %}
+                <!-- Boucle sur chaque message -->
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <!-- Alerte Bootstrap, le type (couleur) dépend des tags du message -->
                     {{ message }}
+                    <!-- Contenu du message -->
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <!-- Bouton pour fermer l'alerte -->
                 </div>
             {% endfor %}
         {% endif %}
 
-        <!-- Modifier cette section pour ajouter le bouton unique -->
+        <!-- En-tête avec titre et bouton de sauvegarde -->
         <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Flex container pour espacer titre et bouton -->
             <h2>Liste des matches</h2>
             <button type="button" class="btn btn-primary" onclick="submitAllForms()">
+                <!-- Bouton qui déclenche la fonction JS submitAllForms() -->
                 <i class="fas fa-save"></i> Enregistrer les modifications
             </button>
         </div>
 
-        <!-- Grille des matches modifiée pour permettre l'édition directe -->
+        <!-- Grille des matches -->
         <div class="row g-4">
+            <!-- Système de grille Bootstrap avec espacement (g-4) -->
             {% for match in events %}
+            <!-- Boucle sur chaque match (event) -->
             <div class="col-md-6 col-lg-4 match-item">
+                <!-- Colonne responsive : 6/12 sur tablette, 4/12 sur desktop -->
                 <form method="POST" action="{% url 'admin_matches' %}" class="match-form card shadow-sm">
+                    <!-- Formulaire pour chaque match, style carte avec ombre légère -->
                     {% csrf_token %}
+                    <!-- Token de sécurité Django contre les attaques CSRF -->
                     <input type="hidden" name="event_id" value="{{ match.id }}">
+                    <!-- ID du match caché -->
+                    
                     <div class="card-header bg-light">
+                        <!-- En-tête de la carte -->
                         <input type="datetime-local" name="start" value="{{ match.time|date:'Y-m-d\TH:i' }}" class="form-control">
+                        <!-- Sélecteur de date/heure, formaté selon le format spécifié -->
                     </div>
+                    
                     <div class="card-body">
+                        <!-- Corps de la carte -->
                         <div class="mb-3">
+                            <!-- Groupe de sélection des équipes -->
                             <select name="team_home" class="form-select mb-2" required>
+                                <!-- Liste déroulante pour l'équipe à domicile -->
                                 {% for team in teams %}
+                                    <!-- Boucle sur toutes les équipes -->
                                     <option value="{{ team.id }}" {% if team.id == match.team_home.id %}selected{% endif %}>
+                                        <!-- Option sélectionnée si c'est l'équipe actuelle -->
                                         <span class="fi fi-{{ team.country_code|lower }}"></span> {{ team.name }}
+                                        <!-- Drapeau du pays + nom de l'équipe -->
                                     </option>
                                 {% endfor %}
                             </select>
+                            
                             <select name="team_away" class="form-select" required>
+                                <!-- Liste déroulante pour l'équipe à l'extérieur -->
                                 {% for team in teams %}
                                     <option value="{{ team.id }}" {% if team.id == match.team_away.id %}selected{% endif %}>
                                         <span class="fi fi-{{ team.country_code|lower }}"></span> {{ team.name }}
@@ -70,17 +126,25 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        
                         <div class="row mb-3">
+                            <!-- Ligne pour les scores -->
                             <div class="col-6">
+                                <!-- Colonne de gauche (6/12) -->
                                 <input type="number" name="score_team_home" value="{{ match.score_home|default:'' }}" 
                                        class="form-control" placeholder="Score domicile">
+                                <!-- Champ numérique pour le score de l'équipe à domicile -->
                             </div>
                             <div class="col-6">
+                                <!-- Colonne de droite (6/12) -->
                                 <input type="number" name="score_team_away" value="{{ match.score_away|default:'' }}" 
                                        class="form-control" placeholder="Score extérieur">
+                                <!-- Champ numérique pour le score de l'équipe à l'extérieur -->
                             </div>
                         </div>
+                        
                         <div class="mb-3">
+                            <!-- Sélection du stade -->
                             <select name="stadium" class="form-select" required>
                                 {% for stadium in stadiums %}
                                     <option value="{{ stadium.id }}" {% if stadium.id == match.stadium.id %}selected{% endif %}>
@@ -89,15 +153,18 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        
                         <div class="text-end">
-                            <button type="button" class="btn btn-danger" onclick="deleteMatch('{{ match.id }}')">
+                            <!-- Bouton de suppression aligné à droite -->
+                            <!-- <button type="button" class="btn btn-danger" onclick="deleteMatch('{{ match.id }}')">
                                 Supprimer
-                            </button>
+                            </button> -->
                         </div>
                     </div>
                 </form>
             </div>
             {% empty %}
+            <!-- Affiché si la liste events est vide -->
             <div class="col-12 text-center">
                 <p class="text-muted">Aucun match disponible</p>
             </div>
@@ -105,36 +172,53 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Chargement des scripts JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS pour les fonctionnalités interactives -->
     <script src="/static/js/admin.js"></script>
+    <!-- Script JS personnalisé -->
+    
     <script>
+        // Fonction pour supprimer un match
         function deleteMatch(matchId) {
+            // Demande confirmation avant suppression
             if (confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
+                // Crée un formulaire dynamiquement
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = `/admin/matches/${matchId}/delete/`;
                 
+                // Récupère le token CSRF de la page
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                // Crée un champ caché pour le token
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
                 csrfInput.name = 'csrfmiddlewaretoken';
                 csrfInput.value = csrfToken;
                 
+                // Ajoute le token au formulaire
                 form.appendChild(csrfInput);
+                // Ajoute le formulaire à la page
                 document.body.appendChild(form);
+                // Envoie le formulaire
                 form.submit();
             }
         }
 
+        // Fonction pour sauvegarder tous les formulaires
         function submitAllForms() {
+            // Demande confirmation
             if (confirm('Voulez-vous enregistrer toutes les modifications ?')) {
+                // Récupère tous les formulaires de matches
                 const forms = document.querySelectorAll('.match-form');
                 const totalForms = forms.length;
                 let completedForms = 0;
 
+                // Pour chaque formulaire
                 forms.forEach(form => {
+                    // Prépare les données du formulaire
                     const formData = new FormData(form);
+                    // Envoie une requête AJAX
                     fetch(form.action, {
                         method: 'POST',
                         body: formData,
@@ -143,12 +227,16 @@
                         }
                     })
                     .then(response => {
+                        // Compte les formulaires traités
                         completedForms++;
+                        // Si tous les formulaires sont traités
                         if (completedForms === totalForms) {
+                            // Recharge la page
                             window.location.reload();
                         }
                     })
                     .catch(error => {
+                        // Affiche les erreurs dans la console
                         console.error('Erreur:', error);
                     });
                 });

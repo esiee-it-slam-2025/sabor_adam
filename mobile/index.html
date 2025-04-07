@@ -1,52 +1,92 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!-- 
+Vue d'ensemble du fichier :
+Ce fichier est la page principale de l'application mobile des JO Paris 2024 (section football).
+Il contient :
+- Une barre de navigation avec les liens principaux
+- Une section de recherche et filtrage des matchs
+- Un affichage des matchs disponibles
+- Des modales pour la connexion, l'inscription et l'achat de billets
+- Les imports des scripts JavaScript nécessaires au fonctionnement
+-->
+
+<!DOCTYPE html> <!-- Définit que c'est un document HTML5 -->
+<html lang="fr"> <!-- Balise racine avec français comme langue -->
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paris 2024 - Football</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8"> <!-- Encodage des caractères en UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Configuration pour le responsive design -->
+    <title>Paris 2024 - Football</title> <!-- Titre de la page dans l'onglet du navigateur -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css"> <!-- Import des styles CSS -->
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Barre de navigation -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="#" class="brand">Paris 2024</a>
+            <a href="#" class="brand">Paris 2024</a> <!-- Logo/titre cliquable -->
             <div class="nav-links">
+                <!-- Cette div contient tous les liens de navigation du site -->
+                
+                <!-- Lien vers la page des matchs, toujours visible et actif par défaut -->
+                <!-- La classe "active" indique visuellement que c'est la page courante -->
                 <a href="#" class="nav-link active">Matchs</a>
+                
+                <!-- Lien vers la page des billets de l'utilisateur -->
+                <!-- display: none le cache par défaut, il sera affiché via JavaScript quand l'utilisateur se connecte -->
+                <!-- L'attribut id="tickets-link" permet de le manipuler facilement en JavaScript -->
                 <a href="ticket.html" class="nav-link" id="tickets-link" style="display: none;">Mes Billets</a>
+                
+                <!-- Bouton de déconnexion, caché par défaut -->
+                <!-- Sera affiché via JavaScript une fois l'utilisateur connecté -->
+                <!-- Le href="#" indique que l'action sera gérée en JavaScript plutôt que par navigation -->
                 <a href="#" class="nav-link" id="logout-link" style="display: none;">Déconnexion</a>
+                
+                <!-- Bouton de connexion, visible par défaut -->
+                <!-- Sera caché via JavaScript quand l'utilisateur se connecte -->
+                <!-- Ouvre probablement une modale de connexion au clic -->
                 <a href="#" class="nav-link" id="login-link">Se connecter</a>
+                
+                <!-- Bouton d'inscription, visible par défaut -->
+                <!-- L'id switch-to-register suggère qu'il bascule vers un formulaire d'inscription -->
+                <!-- Sera caché via JavaScript une fois l'utilisateur connecté -->
                 <a href="#" class="nav-link" id="switch-to-register">S'inscrire</a>
             </div>
         </div>
     </nav>
 
-    <!-- Section des matchs -->
+    <!-- En-tête avec barre de recherche -->
     <header>
         <div class="header-content">
             <h1>Matchs - JO Paris 2024</h1>
             <p class="subtitle">Consultez et réservez vos billets</p>
-            
-            <div class="search-section">
-                <input type="search" id="search-input" placeholder="Rechercher un match...">
-                <select id="filter-select">
-                    <option value="tous">Tous les matchs</option>
-                    <option value="a-venir">À venir</option>
-                    <option value="termines">Terminés</option>
+            <div class="filters">
+                <select id="accessibility-filter">
+                    <option value="">Toutes les accessibilités</option>
+                    <option value="moteur">Mobilité réduite</option>
+                    <option value="mental">Mental</option>
+                    <option value="visuel">Visuel</option>
+                    <option value="auditif">Auditif</option>
+                </select>
+                
+                <!-- Nouveau filtre de tri -->
+                <select id="sort-filter">
+                    <option value="date-asc">Date (croissant)</option>
+                    <option value="date-desc">Date (décroissant)</option>
+                    <option value="team">Équipe (A-Z)</option>
                 </select>
             </div>
         </div>
     </header>
 
-    <!-- Conteneur des matchs -->
+    <!-- Zone principale où les matchs seront affichés dynamiquement -->
     <main id="matches-container" class="matches-grid">
-        <!-- Les matchs seront affichés ici -->
+        <!-- Les matchs seront injectés ici via JavaScript -->
+        <!-- La barre de recherche et les filtres ont été commentés dans le header -->
     </main>
     
-    <!-- Modal de connexion -->
+    <!-- Modal de connexion - Fenêtre popup pour se connecter -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times;</span> <!-- Bouton de fermeture -->
             <h2>Connexion</h2>
             <form id="login-form">
                 <div class="form-group">
@@ -65,12 +105,13 @@
         </div>
     </div>
 
-    <!-- Modal d'inscription -->
+    <!-- Modal d'inscription - Fenêtre popup pour créer un compte -->
     <div id="register-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Inscription</h2>
             <form id="register-form">
+                <!-- Champs requis pour l'inscription -->
                 <div class="form-group">
                     <label for="register-username">Nom d'utilisateur</label>
                     <input type="text" id="register-username" required>
@@ -95,19 +136,21 @@
         </div>
     </div>
 
-    <!-- Modal d'achat de billets -->
+    <!-- Modal d'achat - Fenêtre popup pour acheter des billets -->
     <div id="ticket-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="hideModal(document.getElementById('ticket-modal'))">&times;</span>
             <h2>Acheter un billet</h2>
             
             <div class="match-details">
-                <!-- Les détails du match seront insérés ici par JavaScript -->
+                <!-- Emplacement où JavaScript injectera les détails du match sélectionné -->
             </div>
             
             <form id="purchase-form">
+                <!-- ID du match stocké pour l'achat -->
                 <input type="hidden" id="purchase-event-id" name="event_id">
                 
+                <!-- Sélection de la catégorie de billet avec prix -->
                 <div class="form-group">
                     <label for="purchase-category">Catégorie</label>
                     <select id="purchase-category" name="category" required>
@@ -117,11 +160,13 @@
                     </select>
                 </div>
                 
+                <!-- Choix de la quantité (limité à 10 billets maximum) -->
                 <div class="form-group">
                     <label for="purchase-quantity">Quantité</label>
                     <input type="number" id="purchase-quantity" name="quantity" min="1" max="10" value="1" required>
                 </div>
                     
+                <!-- Affichage dynamique du prix total -->
                 <div class="form-group">
                     <p>Prix total: <span id="total-price">50</span> €</p>
                 </div>
@@ -131,10 +176,10 @@
         </div>
     </div>
 
-    <!-- Scripts dans le bon ordre -->
-    <script src="js/utils.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/qrcode.js"></script>
-    <script src="js/ticket.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Import des scripts JavaScript dans un ordre précis pour gérer les dépendances -->
+    <script src="js/utils.js"></script> <!-- Fonctions utilitaires générales -->
+    <script src="js/auth.js"></script> <!-- Gestion de l'authentification -->
+    <script src="js/qrcode.js"></script> <!-- Génération des QR codes -->
+    <script src="js/ticket.js"></script> <!-- Gestion des billets -->
+    <script src="js/app.js"></script> <!-- Script principal de l'application -->
 </body>

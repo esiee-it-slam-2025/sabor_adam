@@ -1,42 +1,55 @@
+/*
+Vue d'ensemble du fichier :
+Ce fichier CSS définit l'ensemble des styles visuels de l'application mobile de billetterie des JO.
+Il gère la mise en page, les couleurs, les animations et le responsive design pour :
+- La navigation et l'en-tête
+- L'affichage des matchs et des billets
+- Les formulaires et modales
+- L'adaptation aux différentes tailles d'écran
+*/
+
+/* Définition des variables CSS globales pour une cohérence des couleurs et effets */
 :root {
-    --primary: #27509F;
-    --primary-light: #3B6AC1;
-    --secondary: #FFB81C;
-    --background: #F5F7FA;
-    --text: #1A1A1A;
-    --text-light: #666666;
-    --white: #FFFFFF;
-    --ring-blue: #0085C7;
-    --ring-yellow: #F4C300;
+    --primary: #27509F;      /* Bleu principal de la charte */
+    --primary-light: #3B6AC1;/* Version plus claire du bleu principal */
+    --secondary: #FFB81C;    /* Jaune/or pour les éléments d'action */
+    --background: #F5F7FA;   /* Gris très clair pour le fond */
+    --text: #1A1A1A;        /* Noir pour le texte principal */
+    --text-light: #666666;   /* Gris pour le texte secondaire */
+    --white: #FFFFFF;        /* Blanc pur */
+    --ring-blue: #0085C7;    /* Couleurs des anneaux olympiques */
+    --ring-yellow: #F4C300;  
     --ring-black: #000000;
     --ring-green: #009F3D;
     --ring-red: #DF0024;
-    --shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow: 0 2px 4px rgba(0,0,0,0.1); /* Ombre standard pour les éléments */
 }
 
-/* Base */
+/* Reset CSS basique pour uniformiser le rendu entre navigateurs */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+    margin: 0;              /* Supprime les marges par défaut */
+    padding: 0;            /* Supprime les paddings par défaut */
+    box-sizing: border-box; /* Inclut padding et border dans la largeur/hauteur */
 }
 
+/* Style de base du corps de page */
 body {
-    font-family: 'Paris2024', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Paris2024', -apple-system, BlinkMacSystemFont, sans-serif; /* Police personnalisée JO avec fallbacks */
     background: var(--background);
     color: var(--text);
-    line-height: 1.6;
+    line-height: 1.6; /* Espacement des lignes pour une meilleure lisibilité */
 }
 
-/* Navigation */
+/* Barre de navigation fixe en haut de page */
 .navbar {
     background: var(--white);
     box-shadow: var(--shadow);
-    position: sticky;
+    position: sticky; /* Reste collée en haut lors du défilement */
     top: 0;
-    z-index: 100;
+    z-index: 100; /* S'assure que la nav reste au-dessus des autres éléments */
 }
 
+/* Conteneur principal de la navigation, limite la largeur et centre le contenu */
 .nav-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -46,36 +59,41 @@ body {
     align-items: center;
 }
 
+/* Logo/titre du site dans la navigation */
 .brand {
     color: var(--primary);
-    text-decoration: none;
+    text-decoration: none; /* Supprime le soulignement du lien */
     font-size: 1.5rem;
     font-weight: bold;
 }
 
+/* Conteneur des liens de navigation */
 .nav-links {
     display: flex;
-    gap: 2rem;
+    gap: 2rem; /* Espace entre les liens */
 }
 
+/* Style individuel des liens de navigation */
 .nav-link {
     color: var(--text);
     text-decoration: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s; /* Animation douce au survol */
 }
 
+/* Effet de survol sur les liens */
 .nav-link:hover {
     background-color: var(--background);
 }
 
+/* Style du lien actif/sélectionné */
 .nav-link.active {
     color: var(--primary);
     font-weight: bold;
 }
 
-/* Header */
+/* En-tête principal avec dégradé aux couleurs des JO */
 header {
     background: linear-gradient(to right, var(--ring-blue), var(--primary));
     color: var(--white);
@@ -83,23 +101,26 @@ header {
     text-align: center;
 }
 
+/* Conteneur du contenu de l'en-tête */
 .header-content {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
 }
 
+/* Titre principal */
 h1 {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
 }
 
+/* Sous-titre */
 .subtitle {
     font-size: 1.2rem;
     margin-bottom: 2rem;
 }
 
-/* Recherche */
+/* Section de recherche avec barre et filtres */
 .search-section {
     display: flex;
     gap: 1rem;
@@ -107,37 +128,40 @@ h1 {
     margin: 0 auto;
 }
 
-#search-input, #filter-select {
+/* Styles communs pour les champs de recherche et de filtre */
+#search-input, #accessibility-filter {
     padding: 0.8rem;
     border: none;
     border-radius: 4px;
-    flex: 1;
+    flex: 1; /* Prend tout l'espace disponible */
 }
 
-/* Grille de matchs */
+/* Grille responsive pour l'affichage des matchs */
 .matches-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Colonnes adaptatives */
     gap: 2rem;
     max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1rem;
 }
 
-/* Carte de match */
+/* Carte individuelle d'un match */
 .match-card {
     background: var(--white);
     border-radius: 8px;
-    overflow: hidden;
+    overflow: hidden; /* Cache les débordements */
     box-shadow: var(--shadow);
     transition: transform 0.3s;
 }
 
+/* Animation au survol de la carte */
 .match-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-5px); /* Soulève légèrement la carte */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Ombre plus prononcée */
 }
 
+/* En-tête de la carte de match */
 .match-header {
     background: var(--primary);
     color: var(--white);
@@ -145,10 +169,12 @@ h1 {
     text-align: center;
 }
 
+/* Style de la date du match */
 .date {
     font-weight: bold;
 }
 
+/* Conteneur pour l'affichage des équipes */
 .vs-container {
     display: flex;
     justify-content: space-between;
@@ -157,16 +183,19 @@ h1 {
     text-align: center;
 }
 
+/* Style des noms d'équipes */
 .team {
     flex: 1;
     font-weight: bold;
 }
 
+/* Style du "VS" entre les équipes */
 .vs {
     padding: 0 1rem;
     color: var(--text-light);
 }
 
+/* Informations complémentaires du match */
 .match-info {
     display: flex;
     justify-content: space-between;
@@ -175,11 +204,13 @@ h1 {
     color: var(--text-light);
 }
 
+/* Style du score */
 .score {
     font-weight: bold;
     color: var(--text);
 }
 
+/* Bouton d'achat de billet */
 .buy-button {
     width: 100%;
     padding: 1rem;
@@ -191,22 +222,25 @@ h1 {
     transition: background-color 0.3s;
 }
 
+/* Effet au survol du bouton d'achat */
 .buy-button:hover {
-    background: #e0a00f;
+    background: #e0a00f; /* Version plus foncée du jaune */
 }
 
+/* Style du bouton désactivé */
 .buy-button:disabled {
     background: #ccc;
     cursor: not-allowed;
 }
 
-/* Grille de billets */
+/* Section d'affichage des billets */
 .tickets-grid {
     max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1rem;
 }
 
+/* Groupe de billets pour un même événement */
 .ticket-group {
     background: var(--white);
     border-radius: 8px;
@@ -215,16 +249,19 @@ h1 {
     margin-bottom: 2rem;
 }
 
+/* En-tête du groupe de billets */
 .ticket-event-header {
     background: var(--primary);
     color: var(--white);
     padding: 1rem;
 }
 
+/* Liste des billets */
 .tickets-list {
     padding: 1rem;
 }
 
+/* Carte individuelle de billet */
 .ticket-card {
     display: flex;
     justify-content: space-between;
@@ -232,10 +269,12 @@ h1 {
     border-bottom: 1px solid var(--background);
 }
 
+/* Informations du billet */
 .ticket-info {
     flex: 1;
 }
 
+/* Zone du QR code */
 .ticket-qr {
     display: flex;
     flex-direction: column;
@@ -243,6 +282,7 @@ h1 {
     gap: 0.5rem;
 }
 
+/* Bouton de téléchargement */
 .download-btn {
     padding: 0.5rem 1rem;
     background: var(--secondary);
@@ -251,24 +291,26 @@ h1 {
     cursor: pointer;
 }
 
+/* Effet au survol du bouton de téléchargement */
 .download-btn:hover {
     background: #e0a00f;
 }
 
-/* Modales */
+/* Style des fenêtres modales */
 .modal {
-    display: none;
+    display: none; /* Caché par défaut */
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.6); /* Fond semi-transparent */
     align-items: center;
     justify-content: center;
     z-index: 1000;
 }
 
+/* Contenu de la modale */
 .modal-content {
     background-color: white;
     padding: 30px;
@@ -278,6 +320,7 @@ h1 {
     position: relative;
 }
 
+/* Bouton de fermeture de la modale */
 .close-modal {
     position: absolute;
     top: 10px;
@@ -286,16 +329,19 @@ h1 {
     cursor: pointer;
 }
 
+/* Groupe de champs de formulaire */
 .form-group {
     margin-bottom: 20px;
 }
 
+/* Style des labels de formulaire */
 .form-group label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
 }
 
+/* Style des champs de saisie */
 .form-group input, .form-group select {
     width: 100%;
     padding: 10px;
@@ -303,6 +349,7 @@ h1 {
     border-radius: 4px;
 }
 
+/* Style général des boutons */
 .btn {
     display: inline-block;
     background-color: var(--primary);
@@ -316,16 +363,18 @@ h1 {
     transition: background-color 0.3s;
 }
 
+/* Effet au survol des boutons */
 .btn:hover {
     background-color: var(--primary-light);
 }
 
+/* Classe utilitaire pour centrer le texte */
 .text-center {
     text-align: center;
     margin-top: 20px;
 }
 
-/* Messages */
+/* Styles des messages système */
 .error-message, .no-tickets, .loading {
     text-align: center;
     padding: 2rem;
@@ -334,26 +383,30 @@ h1 {
     box-shadow: var(--shadow);
 }
 
+/* Style spécifique des messages d'erreur */
 .error-message {
     color: var(--ring-red);
 }
 
-/* Responsive */
+/* Adaptations pour les écrans moyens (tablettes) */
 @media (max-width: 768px) {
+    /* Réduction des espacements */
     .nav-links {
         gap: 0.5rem;
     }
     
+    /* Passage en colonne de la recherche */
     .search-section {
         flex-direction: column;
     }
     
+    /* Réorganisation des cartes de billets */
     .ticket-card {
         flex-direction: column;
         gap: 1rem;
     }
     
-    /* Améliorations responsive */
+    /* Ajustements de la navigation */
     .nav-container {
         flex-direction: column;
         padding: 0.5rem;
@@ -363,6 +416,7 @@ h1 {
         margin-bottom: 0.5rem;
     }
     
+    /* Adaptation des liens de navigation */
     .nav-links {
         flex-wrap: wrap;
         justify-content: center;
@@ -373,6 +427,7 @@ h1 {
         font-size: 0.9rem;
     }
     
+    /* Réduction des tailles de texte */
     h1 {
         font-size: 1.8rem;
     }
@@ -381,17 +436,20 @@ h1 {
         font-size: 1rem;
     }
     
+    /* Passage en une colonne pour les matchs */
     .matches-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
         padding: 0 0.5rem;
     }
     
+    /* Ajustement des modales */
     .modal-content {
         width: 90%;
         padding: 20px;
     }
     
+    /* Réduction des espacements */
     .vs-container {
         padding: 1rem 0.5rem;
     }
@@ -401,39 +459,45 @@ h1 {
     }
 }
 
-/* Ajout d'un breakpoint pour les très petits écrans */
+/* Adaptations pour les très petits écrans (mobiles) */
 @media (max-width: 480px) {
+    /* Réduction des marges */
     .header-content {
         padding: 0 0.5rem;
     }
     
+    /* Réorganisation des informations de match */
     .match-info {
         flex-direction: column;
         align-items: center;
         gap: 0.5rem;
     }
     
+    /* Réduction de la taille des textes */
     .form-group input, 
     .form-group select, 
     .btn {
         font-size: 14px;
     }
     
+    /* Ajustements des espacements */
     .tickets-list {
         padding: 0.5rem;
     }
     
-    /* Ajustements pour ticket.html */
+    /* Adaptations pour la page des billets */
     .ticket-card {
         width: 100%;
         padding: 10px;
     }
     
+    /* Réduction de la taille du QR code */
     .ticket-qr canvas {
         width: 120px;
         height: 120px;
     }
     
+    /* Ajustements des boutons et en-têtes */
     .download-btn {
         padding: 6px 12px;
         font-size: 0.9rem;
@@ -450,4 +514,93 @@ h1 {
     .ticket-event-header h3 {
         font-size: 1.1rem;
     }
+}
+
+/* Styles spécifiques à la page des billets */
+.tickets-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.ticket-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    width: 280px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #fff;
+    transition: transform 0.3s ease;
+}
+
+.ticket-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.ticket-group {
+    margin-bottom: 40px;
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.ticket-event-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.ticket-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.download-btn {
+    padding: 8px 16px;
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+}
+
+.download-btn:hover {
+    background-color: #0056b3;
+}
+
+.delete-btn {
+    padding: 8px 16px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+}
+
+.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.filters select {
+    padding: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--white);
+    min-width: 200px;
 }
